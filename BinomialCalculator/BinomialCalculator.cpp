@@ -205,6 +205,25 @@ BOOL initDlg(HWND hDlg)
 	HICON hBinIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_BIN));
 	clearHistoryResultButton.setIcon(hBinIcon);
 
+	// Create the tooltip. hInst is the global instance handle.
+	HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL,
+		WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		hDlg, NULL,
+		hInst, NULL);
+
+	TCHAR pszText[] = _T("清除历史记录");
+
+	// Associate the tooltip with the tool.
+	TOOLINFO toolInfo = { 0 };
+	toolInfo.cbSize = sizeof(toolInfo);
+	toolInfo.hwnd = hDlg;
+	toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+	toolInfo.uId = (UINT_PTR)clearHistoryResultButton.getHwnd();
+	toolInfo.lpszText = pszText;
+	SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
 	return TRUE;
 }
 
