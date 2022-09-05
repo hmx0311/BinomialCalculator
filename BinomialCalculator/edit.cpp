@@ -29,7 +29,7 @@ LRESULT CALLBACK numericEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM 
 	{
 	case WM_KILLFOCUS:
 	{
-		WCHAR temp[10];
+		TCHAR temp[10];
 		GetWindowText(edit, temp, 10);
 		auto& undoStr = undoStrMap.at(edit);
 		if (temp[0] == '\0' || lstrcmp(temp, undoStr.first.c_str()) == 0)
@@ -43,7 +43,7 @@ LRESULT CALLBACK numericEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM 
 	case EM_UNDO:
 	{
 		auto& undoStr = undoStrMap.at(edit);
-		WCHAR temp[10];
+		TCHAR temp[10];
 		GetWindowText(edit, temp, 10);
 		if (undoStr.first.empty())
 		{

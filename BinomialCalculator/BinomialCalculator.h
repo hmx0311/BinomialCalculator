@@ -3,4 +3,4 @@
 #include "resource.h"
 
 extern HFONT hNormalFont;
-extern HFONT HLargeFont;
+extern HFONT hLargeFont;

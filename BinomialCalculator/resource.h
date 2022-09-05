@@ -8,7 +8,6 @@
 #define IDI_BINOMIALCALCULATOR          103
 #define IDR_MAINFRAME                   128
 #define IDI_CLEAR                       129
-#define IDI_ICON1                       130
 #define IDI_BIN                         130
 #define IDC_SUCCESS_PROBABILITY_EDIT    1000
 #define IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON 1001
@@ -18,8 +17,9 @@
 #define IDC_CLEAR_NUM_SUCCESS_BUTTON    1005
 #define IDC_RESULT_TEXT                 1006
 #define IDC_CALCULATE_BUTTON            1007
-#define IDC_HISTORY_RESULT_TEXT         1008
+#define IDC_HISTORY_RESULT_LISTBOX      1008
 #define IDC_CLEAR_HISTORY_RESULT_BUTTON 1009
+#define ID_RETRIEVE_RESULT				32771
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

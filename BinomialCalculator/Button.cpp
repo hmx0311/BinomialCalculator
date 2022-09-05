@@ -1,8 +1,8 @@
 #include "framework.h"
 #include "Button.h"
 
-
-#define BUTTON_ANIMATION_DURATION 250
+#define BUTTON_ANIMATION_DURATION_SHORT 150
+#define BUTTON_ANIMATION_DURATION_LONG  200
 
 WNDPROC defButtonProc;
 HTHEME hButtonTheme;
@@ -68,7 +68,7 @@ void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
 		state = PBS_HOT;
 	}
 	HFONT hFont = (HFONT)SendMessage(hButton, WM_GETFONT, 0, 0);
-	BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, BUTTON_ANIMATION_DURATION };
+	BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
 	HDC hdcFrom, hdcTo;
 	HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, NULL, &animParams, &hdcFrom, &hdcTo);
 	if (lastState == state || hbpAnimation == nullptr)

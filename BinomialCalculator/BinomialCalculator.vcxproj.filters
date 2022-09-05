@@ -39,13 +39,10 @@
     <ClInclude Include="edit.h">
       <Filter>头文件\controls</Filter>
     </ClInclude>
-    <ClInclude Include="NumericEdit.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="model.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="listBox.h">
+    <ClInclude Include="ListBox.h">
       <Filter>头文件\controls</Filter>
     </ClInclude>
   </ItemGroup>
@@ -62,7 +59,7 @@
     <ClCompile Include="edit.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
-    <ClCompile Include="listBox.cpp">
+    <ClCompile Include="ListBox.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
   </ItemGroup>

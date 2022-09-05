@@ -5,6 +5,7 @@
 
 #include "Button.h"
 #include "edit.h"
+#include "ListBox.h"
 
 #include "model.h"
 
@@ -14,11 +15,13 @@
 
 #define MAX_LOADSTRING 100
 
+#define LIST_ITEM_HEIGHT 1.16f 
+
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
 
 HFONT hNormalFont;
-HFONT HLargeFont;
+HFONT hLargeFont;
 
 HWND mainDlg;
 HWND successProbabilityEdit;
@@ -30,12 +33,11 @@ Button clearNumSuccessButton;
 HWND resultText;
 Button calculateButton;
 Button clearHistoryResultButton;
-HWND historyResultText;
+ListBox historyResultListBox;
 
 double successProbability = 0;
 int numTrials = 0;
 int numSuccess = 0;
-int resultCnt;
 
 HWND hBet;
 UINT BPC_CONNECTED;
@@ -156,14 +158,17 @@ BOOL initDlg(HWND hDlg)
 	HICON hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_BINOMIALCALCULATOR));
 	SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 	SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+
 	hNormalFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
 	LOGFONT font;
 	GetObject(hNormalFont, sizeof(LOGFONT), &font);
 	font.lfHeight = 1.2f * font.lfHeight - 2.5f;
-	HLargeFont = CreateFontIndirect(&font);
+	hLargeFont = CreateFontIndirect(&font);
 
 	defButtonProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), GWLP_WNDPROC);
 	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), _T("Button"));
+
+	defListBoxProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX), GWLP_WNDPROC);
 
 	successProbabilityEdit = GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT);
 	clearSuccessProbabilityButton.attach(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON));
@@ -174,15 +179,13 @@ BOOL initDlg(HWND hDlg)
 	resultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
 	calculateButton.attach(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON));
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
-	historyResultText = GetDlgItem(hDlg, IDC_HISTORY_RESULT_TEXT);
+	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
 	defEditProc = (WNDPROC)SetWindowLongPtr(successProbabilityEdit, GWLP_WNDPROC, (LONG_PTR)numericEditProc);
 	SetWindowLongPtr(numTrialsEdit, GWLP_WNDPROC, (LONG_PTR)numericEditProc);
 	SetWindowLongPtr(numSuccessEdit, GWLP_WNDPROC, (LONG_PTR)numericEditProc);
 
 	SetWindowLongPtr(resultText, GWLP_WNDPROC, (LONG_PTR)readOnlyEditProc);
-	SetWindowLongPtr(historyResultText, GWLP_WNDPROC, (LONG_PTR)readOnlyEditProc);
-
 
 	SendMessage(successProbabilityEdit, EM_SETLIMITTEXT, 4, 0);
 	initNumericEdit(successProbabilityEdit);
@@ -244,12 +247,47 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					break;
 				}
+			case ODT_LISTBOX:
+				((ListBox*)GetWindowLongPtr(lpDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, lpDrawItemStruct->itemID, lpDrawItemStruct->itemState, lpDrawItemStruct->rcItem);
+				break;
 			}
+			return (INT_PTR)TRUE;
+		}
+	case WM_MEASUREITEM:
+		{
+			HFONT hFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+			LOGFONT font;
+			GetObject(hFont, sizeof(LOGFONT), &font);
+			((LPMEASUREITEMSTRUCT)lParam)->itemHeight = -LIST_ITEM_HEIGHT * font.lfHeight;
 			return (INT_PTR)TRUE;
 		}
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
+		case ID_RETRIEVE_RESULT:
+			{
+				TCHAR successProbabilityStr[5], numTrialsStr[9], numSuccessStr[9];				
+				if (_stscanf((LPTSTR)lParam, _T("0.%4s %8s %8s"), successProbabilityStr, numTrialsStr, numSuccessStr) != 3)
+				{
+					return (INT_PTR)TRUE;
+				}
+				SetWindowText(successProbabilityEdit, successProbabilityStr);
+				updateSuccessProbability();
+				SetWindowText(numTrialsEdit, numTrialsStr);
+				updateNumTrials();
+				SetWindowText(numSuccessEdit, numSuccessStr);
+				updateNumSuccess();
+				double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
+				if (hBet != nullptr)
+				{
+					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)mainDlg, *(LPARAM*)(&cumulativeProbability));
+				}
+				TCHAR str[15];
+				_stprintf(str, _T("%.4f  %.4f"), cumulativeProbability, 1 - cumulativeProbability);
+				SendMessage(resultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+				SetWindowText(resultText, str);
+				return (INT_PTR)TRUE;
+			}
 		case IDC_SUCCESS_PROBABILITY_EDIT:
 			switch (HIWORD(wParam))
 			{
@@ -299,8 +337,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			calcProbability();
 			return (INT_PTR)TRUE;
 		case IDC_CLEAR_HISTORY_RESULT_BUTTON:
-			resultCnt = 0;
-			SetWindowText(historyResultText, _T(""));
+			historyResultListBox.reset();
 			return (INT_PTR)TRUE;
 		}
 		break;
@@ -318,7 +355,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 void updateSuccessProbability()
 {
-	WCHAR str[5];
+	TCHAR str[5];
 	GetWindowText(successProbabilityEdit, str, 5);
 	successProbability = 0;
 	for (int i = lstrlen(str) - 1; i >= 0; i--)
@@ -330,14 +367,14 @@ void updateSuccessProbability()
 
 void updateNumTrials()
 {
-	WCHAR str[9];
+	TCHAR str[9];
 	GetWindowText(numTrialsEdit, str, 9);
 	numTrials = _wtoi(str);
 }
 
 void updateNumSuccess()
 {
-	WCHAR str[9];
+	TCHAR str[9];
 	GetWindowText(numSuccessEdit, str, 9);
 	numSuccess = _wtoi(str);
 }
@@ -377,18 +414,13 @@ void calcProbability()
 		return;
 	}
 	double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
-	PostMessage(hBet, BPC_PROBABILITY, (WPARAM)mainDlg, *(LPARAM*)(&cumulativeProbability));
-	LPWSTR str = new WCHAR[42 * (resultCnt + 1)];
-	swprintf(str, 41, _T("%.4f %8d %8d  %.4f  %.4f"), successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
-	SendMessage(resultText, WM_SETFONT, (WPARAM)HLargeFont, FALSE);
-	SetWindowText(resultText, str + 26);
-	if (resultCnt > 0)
+	if (hBet != nullptr)
 	{
-		str[40] = '\r';
-		str[41] = '\n';
-		GetWindowText(historyResultText, str + 42, 42 * resultCnt);
+		PostMessage(hBet, BPC_PROBABILITY, (WPARAM)mainDlg, *(LPARAM*)(&cumulativeProbability));
 	}
-	SetWindowText(historyResultText, str);
-	delete[](str);
-	resultCnt++;
+	TCHAR str[41];
+	swprintf(str, 41, _T("%.4f %8d %8d  %.4f  %.4f"), successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
+	SendMessage(resultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+	SetWindowText(resultText, str + 26);
+	historyResultListBox.addResult(str);
 }
