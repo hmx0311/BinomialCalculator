@@ -15,7 +15,7 @@
 
 #define MAX_LOADSTRING 100
 
-#define LIST_ITEM_HEIGHT 1.16f 
+#define LIST_ITEM_HEIGHT 1.36f 
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例

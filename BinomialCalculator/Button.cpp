@@ -4,6 +4,8 @@
 #define BUTTON_ANIMATION_DURATION_SHORT 150
 #define BUTTON_ANIMATION_DURATION_LONG  200
 
+#define BUTTON_MARGIN_RATIO 0.1f
+
 WNDPROC defButtonProc;
 HTHEME hButtonTheme;
 
@@ -63,7 +65,7 @@ void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
 	{
 		state = PBS_PRESSED;
 	}
-	else if (itemState & ODS_HOTLIGHT || isTracking)
+	else if (isTracking)
 	{
 		state = PBS_HOT;
 	}
@@ -128,22 +130,25 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 {
 	FillRect(hDC, &rcItem, hBkgBrush);
 	RECT rcContent = rcItem;
+	int margin;
 	if (GetWindowLongPtr(hButton, GWL_STYLE) & BS_FLAT)
 	{
 		if (state == PBS_HOT)
 		{
-			FillRect(hDC, &rcItem,(HBRUSH)GetStockObject(LTGRAY_BRUSH));
+			FillRect(hDC, &rcItem, (HBRUSH)GetStockObject(LTGRAY_BRUSH));
 		}
-		rcContent.left++;
-		rcContent.top++;
-		rcContent.right--;
-		rcContent.bottom--;
+		margin = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top);
 	}
 	else
 	{
 		DrawThemeBackground(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, 0);
 		GetThemeBackgroundContentRect(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, &rcContent);
+		margin = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top) - 1;
 	}
+	rcContent.left += margin;
+	rcContent.top += margin;
+	rcContent.right -= margin;
+	rcContent.bottom -= margin;
 
 	if (hIcon != nullptr)
 	{
