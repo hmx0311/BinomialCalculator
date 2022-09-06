@@ -161,5 +161,5 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	SetBkMode(hDC, TRANSPARENT);
 	TCHAR str[10];
 	GetWindowText(hButton, str, 10);
-	DrawText(hDC, str, wcslen(str), &rcContent, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+	DrawText(hDC, str, lstrlen(str), &rcContent, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 }

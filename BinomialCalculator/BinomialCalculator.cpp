@@ -16,7 +16,12 @@
 
 #define MAX_LOADSTRING 100
 
-#define LIST_ITEM_HEIGHT 1.36f 
+#define LIST_ITEM_HEIGHT 1.36f
+
+#define PROB_LEN 4
+#define NUM_LEN 8
+#define _STR(x) #x
+#define STR(x) _STR(x)
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
@@ -24,7 +29,7 @@ HINSTANCE hInst;                                // 当前实例
 HFONT hNormalFont;
 HFONT hLargeFont;
 
-HWND mainDlg;
+HWND hMainDlg;
 HWND successProbabilityEdit;
 Button clearSuccessProbabilityButton;
 HWND numTrialsEdit;
@@ -66,8 +71,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SetProcessDPIAware();
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
-	mainDlg = CreateDialog(hInst, MAKEINTRESOURCE(IDD_BINOMIALCALCULATOR_DIALOG), NULL, dlgProc);
-	if (!mainDlg)
+	hMainDlg = CreateDialog(hInst, MAKEINTRESOURCE(IDD_BINOMIALCALCULATOR_DIALOG), NULL, dlgProc);
+	if (!hMainDlg)
 	{
 		return FALSE;
 	}
@@ -82,8 +87,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		&BPC_DISCONNECT,
 		&BPC_PROBABILITY) == 4)
 	{
-		PostMessage(hBet, BPC_CONNECTED, (WPARAM)mainDlg, 0);
-		SetWindowText(mainDlg, _T("bet - 二项分布计算器"));
+		PostMessage(hBet, BPC_CONNECTED, (WPARAM)hMainDlg, 0);
+		SetWindowText(hMainDlg, _T("bet - 二项分布计算器"));
 	}
 
 	MSG msg;
@@ -143,7 +148,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			}
 			break;
 		}
-		if (!IsDialogMessage(mainDlg, &msg))
+		if (!IsDialogMessage(hMainDlg, &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -184,11 +189,11 @@ BOOL initDlg(HWND hDlg)
 
 
 
-	SendMessage(successProbabilityEdit, EM_SETLIMITTEXT, 4, 0);
+	SendMessage(successProbabilityEdit, EM_SETLIMITTEXT, PROB_LEN, 0);
 	initNumericEdit(successProbabilityEdit);
-	SendMessage(numTrialsEdit, EM_SETLIMITTEXT, 8, 0);
+	SendMessage(numTrialsEdit, EM_SETLIMITTEXT, NUM_LEN, 0);
 	initNumericEdit(numTrialsEdit);
-	SendMessage(numSuccessEdit, EM_SETLIMITTEXT, 8, 0);
+	SendMessage(numSuccessEdit, EM_SETLIMITTEXT, NUM_LEN, 0);
 	initNumericEdit(numSuccessEdit);
 
 	clearSuccessProbabilityButton.setBkgBrush((HBRUSH)GetStockObject(WHITE_BRUSH));
@@ -282,8 +287,8 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case ID_RETRIEVE_RESULT:
 			{
-				TCHAR successProbabilityStr[5], numTrialsStr[9], numSuccessStr[9];
-				if (_stscanf((LPTSTR)lParam, _T("0.%4s %8s %8s"), successProbabilityStr, numTrialsStr, numSuccessStr) != 3)
+				TCHAR successProbabilityStr[PROB_LEN + 1], numTrialsStr[NUM_LEN + 1], numSuccessStr[NUM_LEN + 1];
+				if (_stscanf((LPTSTR)lParam, _T("0.%" STR(PROB_LEN) "s %" STR(NUM_LEN) "s %" STR(NUM_LEN) "s"), successProbabilityStr, numTrialsStr, numSuccessStr) != 3)
 				{
 					return (INT_PTR)TRUE;
 				}
@@ -296,10 +301,10 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
 				if (hBet != nullptr)
 				{
-					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)mainDlg, *(LPARAM*)(&cumulativeProbability));
+					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hMainDlg, *(LPARAM*)(&cumulativeProbability));
 				}
-				TCHAR str[15];
-				_stprintf(str, _T("%.4f  %.4f"), cumulativeProbability, 1 - cumulativeProbability);
+				TCHAR str[2 * (PROB_LEN + 2) + 3];
+				_stprintf(str, _T("%." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"), cumulativeProbability, 1 - cumulativeProbability);
 				SendMessage(resultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
 				SetWindowText(resultText, str);
 				return (INT_PTR)TRUE;
@@ -360,7 +365,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		if (hBet != NULL)
 		{
-			PostMessage(hBet, BPC_DISCONNECT, (WPARAM)mainDlg, 0);
+			PostMessage(hBet, BPC_DISCONNECT, (WPARAM)hMainDlg, 0);
 		}
 		CloseThemeData(hButtonTheme);
 		PostQuitMessage(0);
@@ -371,8 +376,8 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 void updateSuccessProbability()
 {
-	TCHAR str[5];
-	GetWindowText(successProbabilityEdit, str, 5);
+	TCHAR str[PROB_LEN + 1];
+	GetWindowText(successProbabilityEdit, str, PROB_LEN + 1);
 	successProbability = 0;
 	for (int i = lstrlen(str) - 1; i >= 0; i--)
 	{
@@ -383,15 +388,15 @@ void updateSuccessProbability()
 
 void updateNumTrials()
 {
-	TCHAR str[9];
-	GetWindowText(numTrialsEdit, str, 9);
+	TCHAR str[NUM_LEN+1];
+	GetWindowText(numTrialsEdit, str, NUM_LEN + 1);
 	numTrials = _wtoi(str);
 }
 
 void updateNumSuccess()
 {
-	TCHAR str[9];
-	GetWindowText(numSuccessEdit, str, 9);
+	TCHAR str[NUM_LEN + 1];
+	GetWindowText(numSuccessEdit, str, NUM_LEN + 1);
 	numSuccess = _wtoi(str);
 }
 
@@ -432,11 +437,12 @@ void calcProbability()
 	double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
 	if (hBet != nullptr)
 	{
-		PostMessage(hBet, BPC_PROBABILITY, (WPARAM)mainDlg, *(LPARAM*)(&cumulativeProbability));
+		PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hMainDlg, *(LPARAM*)(&cumulativeProbability));
 	}
-	TCHAR str[41];
-	swprintf(str, 41, _T("%.4f %8d %8d  %.4f  %.4f"), successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
+	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
+	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
+		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
 	SendMessage(resultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
-	SetWindowText(resultText, str + 26);
+	SetWindowText(resultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 	historyResultListBox.addResult(str);
 }

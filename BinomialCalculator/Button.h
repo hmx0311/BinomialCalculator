@@ -14,9 +14,9 @@ protected:
 	HBRUSH hBkgBrush = GetSysColorBrush(CTLCOLOR_DLG);
 	bool isTracking = false;
 public:
+	void attach(HWND hButton);
 	virtual LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
 	virtual void drawItem(HDC hDC, UINT itemState, RECT& rcItem);
-	void attach(HWND hButton);
 	HWND getHwnd();
 	void setText(LPCWSTR str);
 	void setIcon(HICON hIcon);
