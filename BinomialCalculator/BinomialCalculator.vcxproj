@@ -151,17 +151,17 @@
     <ClInclude Include="Button.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="edit.h" />
-    <ClInclude Include="ListBox.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="ResultList.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BinomialCalculator.cpp" />
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="edit.cpp" />
-    <ClCompile Include="ListBox.cpp" />
     <ClCompile Include="model.cpp" />
+    <ClCompile Include="ResultList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BinomialCalculator.rc" />

@@ -1,6 +1,6 @@
 #pragma once
 
-class ListBox
+class ResultList
 {
 private:
 	HWND hListBox;

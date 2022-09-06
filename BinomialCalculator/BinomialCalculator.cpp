@@ -5,7 +5,7 @@
 
 #include "Button.h"
 #include "edit.h"
-#include "ListBox.h"
+#include "ResultList.h"
 
 #include "model.h"
 
@@ -39,7 +39,7 @@ Button clearNumSuccessButton;
 HWND resultText;
 Button calculateButton;
 Button clearHistoryResultButton;
-ListBox historyResultListBox;
+ResultList historyResultListBox;
 
 double successProbability = 0;
 int numTrials = 0;
@@ -269,7 +269,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				}
 			case ODT_LISTBOX:
-				((ListBox*)GetWindowLongPtr(lpDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, lpDrawItemStruct->itemID, lpDrawItemStruct->itemState, lpDrawItemStruct->rcItem);
+				((ResultList*)GetWindowLongPtr(lpDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, lpDrawItemStruct->itemID, lpDrawItemStruct->itemState, lpDrawItemStruct->rcItem);
 				break;
 			}
 			return (INT_PTR)TRUE;

@@ -42,7 +42,7 @@
     <ClInclude Include="model.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ListBox.h">
+    <ClInclude Include="ResultList.h">
       <Filter>头文件\controls</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,7 +59,7 @@
     <ClCompile Include="edit.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
-    <ClCompile Include="ListBox.cpp">
+    <ClCompile Include="ResultList.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
   </ItemGroup>

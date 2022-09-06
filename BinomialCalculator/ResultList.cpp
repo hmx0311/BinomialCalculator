@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "ListBox.h"
+#include "ResultList.h"
 
 #include "BinomialCalculator.h"
 
@@ -8,17 +8,17 @@
 
 static LRESULT listBoxSubclassProc(HWND hListBox, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	return ((ListBox*)GetWindowLongPtr(hListBox, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
+	return ((ResultList*)GetWindowLongPtr(hListBox, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
 }
 
-void ListBox::attach(HWND hListBox)
+void ResultList::attach(HWND hListBox)
 {
 	this->hListBox = hListBox;
 	SetWindowLongPtr(hListBox, GWLP_USERDATA, (LONG_PTR)this);
 	SetWindowSubclass(hListBox, listBoxSubclassProc, 0, 0);
 }
 
-LRESULT ListBox::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
@@ -152,7 +152,7 @@ LRESULT ListBox::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	return DefSubclassProc(hListBox, msg, wParam, lParam);
 }
 
-void ListBox::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
+void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 {
 	if (itemID == -1)
 	{
@@ -190,19 +190,19 @@ void ListBox::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	DeleteObject(bmp);
 }
 
-HWND ListBox::getHwnd()
+HWND ResultList::getHwnd()
 {
 	return hListBox;
 }
 
-void ListBox::addResult(LPCWSTR str)
+void ResultList::addResult(LPCWSTR str)
 {
 	SendMessage(hListBox, LB_INSERTSTRING, 0, (LPARAM)str);
 	SendMessage(hListBox, LB_SETTOPINDEX, 0, 0);
 	resultCnt++;
 }
 
-void ListBox::reset()
+void ResultList::reset()
 {
 	SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
 	resultCnt = 0;
