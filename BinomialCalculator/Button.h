@@ -2,10 +2,7 @@
 #include <uxtheme.h>
 #include <Vsstyle.h>
 
-extern WNDPROC defButtonProc;
 extern HTHEME hButtonTheme;
-
-LRESULT CALLBACK buttonProc(HWND, UINT, WPARAM, LPARAM);
 
 class Button
 {
@@ -17,7 +14,7 @@ protected:
 	HBRUSH hBkgBrush = GetSysColorBrush(CTLCOLOR_DLG);
 	bool isTracking = false;
 public:
-	virtual LRESULT buttonProc(UINT message, WPARAM wParam, LPARAM lParam);
+	virtual LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
 	virtual void drawItem(HDC hDC, UINT itemState, RECT& rcItem);
 	void attach(HWND hButton);
 	HWND getHwnd();

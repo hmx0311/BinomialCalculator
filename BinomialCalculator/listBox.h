@@ -1,9 +1,5 @@
 #pragma once
 
-extern WNDPROC defListBoxProc;
-
-LRESULT CALLBACK listBoxProc(HWND hListBox, UINT message, WPARAM wParam, LPARAM lParam);
-
 class ListBox
 {
 private:
@@ -13,9 +9,9 @@ private:
 	int lastTrackItemID = -1;
 	bool isInClkRect = true;
 public:
-	LRESULT wndProc(UINT message, WPARAM wParam, LPARAM lParam);
-	void drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem);
 	void attach(HWND hListBox);
+	LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
+	void drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem);
 	HWND getHwnd();
 	void addResult(LPCWSTR str);
 	void reset();

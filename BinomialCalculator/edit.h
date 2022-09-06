@@ -1,9 +1,5 @@
 #pragma once
 
-extern WNDPROC defEditProc;
-
-void initNumericEdit(HWND);
-
-LRESULT CALLBACK numericEditProc(HWND, UINT, WPARAM, LPARAM);
-
-LRESULT CALLBACK readOnlyEditProc(HWND, UINT, WPARAM, LPARAM);
+void initNumericEdit(HWND hEdit);
+LRESULT CALLBACK numericEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+LRESULT CALLBACK readOnlyEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);

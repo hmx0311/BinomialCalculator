@@ -1,32 +1,30 @@
 #include "framework.h"
 #include "Button.h"
 
+#include <CommCtrl.h>
+
 #define BUTTON_ANIMATION_DURATION_SHORT 150
 #define BUTTON_ANIMATION_DURATION_LONG  200
 
 #define BUTTON_MARGIN_RATIO 0.1f
 
-WNDPROC defButtonProc;
 HTHEME hButtonTheme;
 
-LRESULT CALLBACK buttonProc(HWND hButton, UINT message, WPARAM wParam, LPARAM lParam)
+static LRESULT CALLBACK buttonSubclassProc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	Button* button = (Button*)GetWindowLongPtr(hButton, GWLP_USERDATA);
-	LRESULT result = (LRESULT)FALSE;
-	if (button != nullptr)
-	{
-		result = button->buttonProc(message, wParam, lParam);
-	}
-	if (result)
-	{
-		return result;
-	}
-	return CallWindowProc(defButtonProc, hButton, message, wParam, lParam);
+	return ((Button*)GetWindowLongPtr(hButton, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
 }
 
-LRESULT Button::buttonProc(UINT message, WPARAM wParam, LPARAM lParam)
+void Button::attach(HWND hButton)
 {
-	switch (message)
+	this->hButton = hButton;
+	SetWindowLongPtr(hButton, GWLP_USERDATA, (LONG_PTR)this);
+	SetWindowSubclass(hButton, buttonSubclassProc, 0, 0);
+}
+
+LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
 	{
 	case WM_ERASEBKGND:
 		return LRESULT(TRUE);
@@ -55,7 +53,7 @@ LRESULT Button::buttonProc(UINT message, WPARAM wParam, LPARAM lParam)
 		SendMessage(hButton, WM_LBUTTONDOWN, wParam, lParam);
 		return LRESULT(TRUE);
 	}
-	return LRESULT(FALSE);
+	return DefSubclassProc(hButton, msg, wParam, lParam);
 }
 
 void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
@@ -96,13 +94,6 @@ void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
 		EndBufferedAnimation(hbpAnimation, TRUE);
 	}
 	lastState = state;
-}
-
-void Button::attach(HWND hButton)
-{
-	this->hButton = hButton;
-	SetWindowLongPtr(hButton, GWLP_USERDATA, (LONG_PTR)this);
-	SetWindowLongPtr(hButton, GWLP_WNDPROC, (LONG_PTR)::buttonProc);
 }
 
 HWND Button::getHwnd()

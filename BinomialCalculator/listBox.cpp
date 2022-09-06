@@ -3,18 +3,24 @@
 
 #include "BinomialCalculator.h"
 
+#include <CommCtrl.h>
 #include <windowsx.h>
 
-WNDPROC defListBoxProc;
-
-LRESULT listBoxProc(HWND hListBox, UINT message, WPARAM wParam, LPARAM lParam)
+static LRESULT listBoxSubclassProc(HWND hListBox, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	return ((ListBox*)GetWindowLongPtr(hListBox, GWLP_USERDATA))->wndProc(message, wParam, lParam);
+	return ((ListBox*)GetWindowLongPtr(hListBox, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
 }
 
-LRESULT ListBox::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
+void ListBox::attach(HWND hListBox)
 {
-	switch (message)
+	this->hListBox = hListBox;
+	SetWindowLongPtr(hListBox, GWLP_USERDATA, (LONG_PTR)this);
+	SetWindowSubclass(hListBox, listBoxSubclassProc, 0, 0);
+}
+
+LRESULT ListBox::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
 	{
 	case WM_ERASEBKGND:
 		{
@@ -30,7 +36,7 @@ LRESULT ListBox::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_KEYDOWN:
 		return (LRESULT)TRUE;
 	case WM_LBUTTONDBLCLK:
-		message = WM_LBUTTONDOWN;
+		msg = WM_LBUTTONDOWN;
 		break;
 	case WM_MOUSEMOVE:
 		{
@@ -143,7 +149,7 @@ LRESULT ListBox::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
 		isInClkRect = true;
 		break;
 	}
-	return CallWindowProc(defListBoxProc, hListBox, message, wParam, lParam);
+	return DefSubclassProc(hListBox, msg, wParam, lParam);
 }
 
 void ListBox::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
@@ -182,13 +188,6 @@ void ListBox::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	BitBlt(hDC, rcItem.left, rcItem.top, width, height, hDCMem, 0, 0, SRCCOPY);
 	DeleteDC(hDCMem);
 	DeleteObject(bmp);
-}
-
-void ListBox::attach(HWND hListBox)
-{
-	this->hListBox = hListBox;
-	SetWindowLongPtr(hListBox, GWLP_USERDATA, (LONG_PTR)this);
-	SetWindowLongPtr(hListBox, GWLP_WNDPROC, (LONG_PTR)::listBoxProc);
 }
 
 HWND ListBox::getHwnd()

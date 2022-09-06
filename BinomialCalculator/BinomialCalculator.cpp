@@ -11,7 +11,8 @@
 
 #include <CommCtrl.h>
 
-#pragma comment(lib, "UxTheme.lib")
+#pragma comment(lib,"comctl32.lib")
+#pragma comment(lib,"UxTheme.lib")
 
 #define MAX_LOADSTRING 100
 
@@ -154,7 +155,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 BOOL initDlg(HWND hDlg)
 {
-
 	HICON hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_BINOMIALCALCULATOR));
 	SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 	SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
@@ -165,27 +165,24 @@ BOOL initDlg(HWND hDlg)
 	font.lfHeight = 1.2f * font.lfHeight - 2.5f;
 	hLargeFont = CreateFontIndirect(&font);
 
-	defButtonProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), GWLP_WNDPROC);
 	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), _T("Button"));
 
-	defListBoxProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX), GWLP_WNDPROC);
-
 	successProbabilityEdit = GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT);
+	SetWindowSubclass(successProbabilityEdit, numericEditSubclassProc, 0, 0);
 	clearSuccessProbabilityButton.attach(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON));
 	numTrialsEdit = GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT);
+	SetWindowSubclass(numTrialsEdit, numericEditSubclassProc, 0, 0);
 	clearNumTrialsButton.attach(GetDlgItem(hDlg, IDC_CLEAR_NUM_TRIALS_BUTTON));
 	numSuccessEdit = GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT);
+	SetWindowSubclass(numSuccessEdit, numericEditSubclassProc, 0, 0);
 	clearNumSuccessButton.attach(GetDlgItem(hDlg, IDC_CLEAR_NUM_SUCCESS_BUTTON));
 	resultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
+	SetWindowSubclass(resultText, readOnlyEditSubclassProc, 0, 0);
 	calculateButton.attach(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON));
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
-	defEditProc = (WNDPROC)SetWindowLongPtr(successProbabilityEdit, GWLP_WNDPROC, (LONG_PTR)numericEditProc);
-	SetWindowLongPtr(numTrialsEdit, GWLP_WNDPROC, (LONG_PTR)numericEditProc);
-	SetWindowLongPtr(numSuccessEdit, GWLP_WNDPROC, (LONG_PTR)numericEditProc);
 
-	SetWindowLongPtr(resultText, GWLP_WNDPROC, (LONG_PTR)readOnlyEditProc);
 
 	SendMessage(successProbabilityEdit, EM_SETLIMITTEXT, 4, 0);
 	initNumericEdit(successProbabilityEdit);
@@ -285,7 +282,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case ID_RETRIEVE_RESULT:
 			{
-				TCHAR successProbabilityStr[5], numTrialsStr[9], numSuccessStr[9];				
+				TCHAR successProbabilityStr[5], numTrialsStr[9], numSuccessStr[9];
 				if (_stscanf((LPTSTR)lParam, _T("0.%4s %8s %8s"), successProbabilityStr, numTrialsStr, numSuccessStr) != 3)
 				{
 					return (INT_PTR)TRUE;

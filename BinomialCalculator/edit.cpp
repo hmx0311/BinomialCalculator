@@ -2,14 +2,13 @@
 #include "edit.h"
 #include "BinomialCalculator.h"
 
-#include "string"
+#include <CommCtrl.h>
+#include <string>
 #include <unordered_map>
 
 using namespace std;
 
-unordered_map<HWND, pair<wstring, wstring>> undoStrMap;
-
-WNDPROC defEditProc;
+static unordered_map<HWND, pair<wstring, wstring>> undoStrMap;
 
 void initNumericEdit(HWND edit)
 {
@@ -23,15 +22,15 @@ void initNumericEdit(HWND edit)
 	undoStrMap.emplace(edit, make_pair(_T(""), _T("")));
 }
 
-LRESULT CALLBACK numericEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK numericEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	switch (message)
+	switch (msg)
 	{
 	case WM_KILLFOCUS:
 	{
 		TCHAR temp[10];
-		GetWindowText(edit, temp, 10);
-		auto& undoStr = undoStrMap.at(edit);
+		GetWindowText(hEdit, temp, 10);
+		auto& undoStr = undoStrMap.at(hEdit);
 		if (temp[0] == '\0' || lstrcmp(temp, undoStr.first.c_str()) == 0)
 		{
 			break;
@@ -42,9 +41,9 @@ LRESULT CALLBACK numericEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM 
 	}
 	case EM_UNDO:
 	{
-		auto& undoStr = undoStrMap.at(edit);
+		auto& undoStr = undoStrMap.at(hEdit);
 		TCHAR temp[10];
-		GetWindowText(edit, temp, 10);
+		GetWindowText(hEdit, temp, 10);
 		if (undoStr.first.empty())
 		{
 			undoStr.first = temp;
@@ -62,13 +61,13 @@ LRESULT CALLBACK numericEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM 
 		{
 			undoStr.second = temp;
 		}
-		SetWindowText(edit, undoStr.first.c_str());
-		SendMessage(edit, EM_SETSEL, undoStr.first.size(), -1);
-		SendMessage(GetParent(edit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(edit), EN_CHANGE), 0);
+		SetWindowText(hEdit, undoStr.first.c_str());
+		SendMessage(hEdit, EM_SETSEL, undoStr.first.size(), -1);
+		SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
 		return (INT_PTR)TRUE;
 	}
 	case WM_PASTE:
-		OpenClipboard(edit);
+		OpenClipboard(hEdit);
 		wstring str;
 		char* text = (char*)GetClipboardData(CF_TEXT);
 		if (text == nullptr)
@@ -106,16 +105,16 @@ LRESULT CALLBACK numericEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM 
 			}
 		}
 		CloseClipboard();
-		SendMessage(edit, EM_REPLACESEL, (WPARAM)0, (LPARAM)str.c_str());
+		SendMessage(hEdit, EM_REPLACESEL, (WPARAM)0, (LPARAM)str.c_str());
 		return (INT_PTR)TRUE;
 	}
-	return CallWindowProc(defEditProc, edit, message, wParam, lParam);
+	return DefSubclassProc(hEdit, msg, wParam, lParam);
 }
 
 
-LRESULT CALLBACK readOnlyEditProc(HWND edit, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK readOnlyEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	LRESULT result = CallWindowProc(defEditProc, edit, message, wParam, lParam);
-	HideCaret(edit);
+	LRESULT result = DefSubclassProc(hEdit, msg, wParam, lParam);
+	HideCaret(hEdit);
 	return result;
 }
