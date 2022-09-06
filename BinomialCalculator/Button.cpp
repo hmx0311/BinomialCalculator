@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Button.h"
+#include "button.h"
 
 #include <CommCtrl.h>
 

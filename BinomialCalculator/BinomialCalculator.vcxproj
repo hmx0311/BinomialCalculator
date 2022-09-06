@@ -148,20 +148,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BinomialCalculator.h" />
-    <ClInclude Include="Button.h" />
+    <ClInclude Include="button.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="edit.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="ResultList.h" />
+    <ClInclude Include="listbox.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BinomialCalculator.cpp" />
-    <ClCompile Include="Button.cpp" />
+    <ClCompile Include="button.cpp" />
     <ClCompile Include="edit.cpp" />
     <ClCompile Include="model.cpp" />
-    <ClCompile Include="ResultList.cpp" />
+    <ClCompile Include="listBox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BinomialCalculator.rc" />

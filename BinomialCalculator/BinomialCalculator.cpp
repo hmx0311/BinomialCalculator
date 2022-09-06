@@ -3,9 +3,9 @@
 #include "framework.h"
 #include "BinomialCalculator.h"
 
-#include "Button.h"
+#include "button.h"
 #include "edit.h"
-#include "ResultList.h"
+#include "listbox.h"
 
 #include "model.h"
 
@@ -30,13 +30,13 @@ HFONT hNormalFont;
 HFONT hLargeFont;
 
 HWND hMainDlg;
-HWND successProbabilityEdit;
+NumericEdit successProbabilityEdit;
 Button clearSuccessProbabilityButton;
-HWND numTrialsEdit;
+NumericEdit numTrialsEdit;
 Button clearNumTrialsButton;
-HWND numSuccessEdit;
+NumericEdit numSuccessEdit;
 Button clearNumSuccessButton;
-HWND resultText;
+HWND hResultText;
 Button calculateButton;
 Button clearHistoryResultButton;
 ResultList historyResultListBox;
@@ -109,11 +109,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 					break;
 				case IDC_NUM_TRIALS_EDIT:
 					updateNumTrials();
-					break;;
+					break;
 				case IDC_NUM_SUCCESS_EDIT:
 					updateNumSuccess();
 				}
 				calcProbability();
+				break;
 			case VK_ESCAPE:
 				continue;
 			case VK_UP:
@@ -122,12 +123,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				case IDC_SUCCESS_PROBABILITY_EDIT:
 					continue;
 				case IDC_NUM_TRIALS_EDIT:
-					SetFocus(successProbabilityEdit);
-					SendMessage(successProbabilityEdit, EM_SETSEL, 0, -1);
+					SetFocus(successProbabilityEdit.getHwnd());
+					SendMessage(successProbabilityEdit.getHwnd(), EM_SETSEL, 0, -1);
 					continue;
 				case IDC_NUM_SUCCESS_EDIT:
-					SetFocus(numTrialsEdit);
-					SendMessage(numTrialsEdit, EM_SETSEL, 0, -1);
+					SetFocus(numTrialsEdit.getHwnd());
+					SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
 					continue;
 				}
 				break;
@@ -135,12 +136,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				switch (GetDlgCtrlID(GetFocus()))
 				{
 				case IDC_SUCCESS_PROBABILITY_EDIT:
-					SetFocus(numTrialsEdit);
-					SendMessage(numTrialsEdit, EM_SETSEL, 0, -1);
+					SetFocus(numTrialsEdit.getHwnd());
+					SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
 					continue;
 				case IDC_NUM_TRIALS_EDIT:
-					SetFocus(numSuccessEdit);
-					SendMessage(numSuccessEdit, EM_SETSEL, 0, -1);
+					SetFocus(numSuccessEdit.getHwnd());
+					SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
 					continue;
 				case IDC_NUM_SUCCESS_EDIT:
 					continue;
@@ -172,29 +173,21 @@ BOOL initDlg(HWND hDlg)
 
 	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), _T("Button"));
 
-	successProbabilityEdit = GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT);
-	SetWindowSubclass(successProbabilityEdit, numericEditSubclassProc, 0, 0);
+	successProbabilityEdit.attach(GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT));
 	clearSuccessProbabilityButton.attach(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON));
-	numTrialsEdit = GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT);
-	SetWindowSubclass(numTrialsEdit, numericEditSubclassProc, 0, 0);
+	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT));
 	clearNumTrialsButton.attach(GetDlgItem(hDlg, IDC_CLEAR_NUM_TRIALS_BUTTON));
-	numSuccessEdit = GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT);
-	SetWindowSubclass(numSuccessEdit, numericEditSubclassProc, 0, 0);
+	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT));
 	clearNumSuccessButton.attach(GetDlgItem(hDlg, IDC_CLEAR_NUM_SUCCESS_BUTTON));
-	resultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
-	SetWindowSubclass(resultText, readOnlyEditSubclassProc, 0, 0);
+	hResultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
+	SetWindowSubclass(hResultText, readOnlyEditSubclassProc, 0, 0);
 	calculateButton.attach(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON));
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
-
-
-	SendMessage(successProbabilityEdit, EM_SETLIMITTEXT, PROB_LEN, 0);
-	initNumericEdit(successProbabilityEdit);
-	SendMessage(numTrialsEdit, EM_SETLIMITTEXT, NUM_LEN, 0);
-	initNumericEdit(numTrialsEdit);
-	SendMessage(numSuccessEdit, EM_SETLIMITTEXT, NUM_LEN, 0);
-	initNumericEdit(numSuccessEdit);
+	SendMessage(successProbabilityEdit.getHwnd(), EM_SETLIMITTEXT, PROB_LEN, 0);
+	SendMessage(numTrialsEdit.getHwnd(), EM_SETLIMITTEXT, NUM_LEN, 0);
+	SendMessage(numSuccessEdit.getHwnd(), EM_SETLIMITTEXT, NUM_LEN, 0);
 
 	clearSuccessProbabilityButton.setBkgBrush((HBRUSH)GetStockObject(WHITE_BRUSH));
 	clearNumTrialsButton.setBkgBrush((HBRUSH)GetStockObject(WHITE_BRUSH));
@@ -241,7 +234,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		return (INT_PTR)initDlg(hDlg);
 	case WM_CTLCOLORSTATIC:
-		if ((HWND)lParam == resultText && (HFONT)SendMessage(resultText, WM_GETFONT, 0, 0) == hNormalFont)
+		if ((HWND)lParam == hResultText && (HFONT)SendMessage(hResultText, WM_GETFONT, 0, 0) == hNormalFont)
 		{
 			HDC hDC = (HDC)wParam;
 			SetTextColor(hDC, RGB(255, 0, 0));
@@ -292,11 +285,11 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					return (INT_PTR)TRUE;
 				}
-				SetWindowText(successProbabilityEdit, successProbabilityStr);
+				successProbabilityEdit.setText(successProbabilityStr);
 				updateSuccessProbability();
-				SetWindowText(numTrialsEdit, numTrialsStr);
+				numTrialsEdit.setText(numTrialsStr);
 				updateNumTrials();
-				SetWindowText(numSuccessEdit, numSuccessStr);
+				numSuccessEdit.setText(numSuccessStr);
 				updateNumSuccess();
 				double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
 				if (hBet != nullptr)
@@ -305,8 +298,8 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				TCHAR str[2 * (PROB_LEN + 2) + 3];
 				_stprintf(str, _T("%." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"), cumulativeProbability, 1 - cumulativeProbability);
-				SendMessage(resultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
-				SetWindowText(resultText, str);
+				SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+				SetWindowText(hResultText, str);
 				return (INT_PTR)TRUE;
 			}
 		case IDC_SUCCESS_PROBABILITY_EDIT:
@@ -316,7 +309,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				updateSuccessProbability();
 				return (INT_PTR)TRUE;
 			case EN_CHANGE:
-				SetWindowText(resultText, _T(""));
+				SetWindowText(hResultText, _T(""));
 			}
 			break;
 		case IDC_NUM_TRIALS_EDIT:
@@ -326,7 +319,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				updateNumTrials();
 				return (INT_PTR)TRUE;
 			case EN_CHANGE:
-				SetWindowText(resultText, _T(""));
+				SetWindowText(hResultText, _T(""));
 			}
 			break;
 		case IDC_NUM_SUCCESS_EDIT:
@@ -336,23 +329,23 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				updateNumSuccess();
 				return (INT_PTR)TRUE;
 			case EN_CHANGE:
-				SetWindowText(resultText, _T(""));
+				SetWindowText(hResultText, _T(""));
 			}
 			break;
 		case IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON:
-			SetWindowText(resultText, _T(""));
-			SetWindowText(successProbabilityEdit, _T(""));
-			SetFocus(successProbabilityEdit);
+			SetWindowText(hResultText, _T(""));
+			successProbabilityEdit.setText(_T(""));
+			SetFocus(successProbabilityEdit.getHwnd());
 			return (INT_PTR)TRUE;
 		case IDC_CLEAR_NUM_TRIALS_BUTTON:
-			SetWindowText(resultText, _T(""));
-			SetWindowText(numTrialsEdit, _T(""));
-			SetFocus(numTrialsEdit);
+			SetWindowText(hResultText, _T(""));
+			numTrialsEdit.setText(_T(""));
+			SetFocus(numTrialsEdit.getHwnd());
 			return (INT_PTR)TRUE;
 		case IDC_CLEAR_NUM_SUCCESS_BUTTON:
-			SetWindowText(resultText, _T(""));
-			SetWindowText(numSuccessEdit, _T(""));
-			SetFocus(numSuccessEdit);
+			SetWindowText(hResultText, _T(""));
+			numSuccessEdit.setText(_T(""));
+			SetFocus(numSuccessEdit.getHwnd());
 			return (INT_PTR)TRUE;
 		case IDC_CALCULATE_BUTTON:
 			calcProbability();
@@ -377,7 +370,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 void updateSuccessProbability()
 {
 	TCHAR str[PROB_LEN + 1];
-	GetWindowText(successProbabilityEdit, str, PROB_LEN + 1);
+	GetWindowText(successProbabilityEdit.getHwnd(), str, PROB_LEN + 1);
 	successProbability = 0;
 	for (int i = lstrlen(str) - 1; i >= 0; i--)
 	{
@@ -388,15 +381,15 @@ void updateSuccessProbability()
 
 void updateNumTrials()
 {
-	TCHAR str[NUM_LEN+1];
-	GetWindowText(numTrialsEdit, str, NUM_LEN + 1);
+	TCHAR str[NUM_LEN + 1];
+	GetWindowText(numTrialsEdit.getHwnd(), str, NUM_LEN + 1);
 	numTrials = _wtoi(str);
 }
 
 void updateNumSuccess()
 {
 	TCHAR str[NUM_LEN + 1];
-	GetWindowText(numSuccessEdit, str, NUM_LEN + 1);
+	GetWindowText(numSuccessEdit.getHwnd(), str, NUM_LEN + 1);
 	numSuccess = _wtoi(str);
 }
 
@@ -404,34 +397,34 @@ void calcProbability()
 {
 	if (successProbability == 0)
 	{
-		SendMessage(resultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowText(resultText, _T("成功概率不能为0"));
-		SetFocus(successProbabilityEdit);
-		SendMessage(successProbabilityEdit, EM_SETSEL, 0, -1);
+		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		SetWindowText(hResultText, _T("成功概率不能为0"));
+		SetFocus(successProbabilityEdit.getHwnd());
+		SendMessage(successProbabilityEdit.getHwnd(), EM_SETSEL, 0, -1);
 		return;
 	}
 	if (numTrials == 0)
 	{
-		SendMessage(resultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowText(resultText, _T("试验次数不能为0"));
-		SetFocus(numTrialsEdit);
-		SendMessage(numTrialsEdit, EM_SETSEL, 0, -1);
+		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		SetWindowText(hResultText, _T("试验次数不能为0"));
+		SetFocus(numTrialsEdit.getHwnd());
+		SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
 		return;
 	}
 	if (numSuccess == 0)
 	{
-		SendMessage(resultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowText(resultText, _T("成功次数不能为0"));
-		SetFocus(numSuccessEdit);
-		SendMessage(numSuccessEdit, EM_SETSEL, 0, -1);
+		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		SetWindowText(hResultText, _T("成功次数不能为0"));
+		SetFocus(numSuccessEdit.getHwnd());
+		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
 		return;
 	}
 	if (numSuccess > numTrials)
 	{
-		SendMessage(resultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowText(resultText, _T("成功次数不能大于试验次数"));
-		SetFocus(numSuccessEdit);
-		SendMessage(numSuccessEdit, EM_SETSEL, 0, -1);
+		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		SetWindowText(hResultText, _T("成功次数不能大于试验次数"));
+		SetFocus(numSuccessEdit.getHwnd());
+		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
 		return;
 	}
 	double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
@@ -442,7 +435,7 @@ void calcProbability()
 	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
 		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
-	SendMessage(resultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
-	SetWindowText(resultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
+	SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+	SetWindowText(hResultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 	historyResultListBox.addResult(str);
 }

@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "ResultList.h"
+#include "listbox.h"
 
 #include "BinomialCalculator.h"
 

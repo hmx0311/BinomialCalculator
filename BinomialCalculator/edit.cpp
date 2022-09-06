@@ -3,12 +3,8 @@
 #include "BinomialCalculator.h"
 
 #include <CommCtrl.h>
-#include <string>
-#include <unordered_map>
 
 using namespace std;
-
-static unordered_map<HWND, pair<wstring, wstring>> undoStrMap;
 
 void initNumericEdit(HWND edit)
 {
@@ -18,54 +14,63 @@ void initNumericEdit(HWND edit)
 	GetObject(hNormalFont, sizeof(LOGFONT), &font);
 	rect.top += (rect.bottom - rect.top + font.lfHeight - 1.5f) / 2;
 	SendMessage(edit, EM_SETRECTNP, 0, (LPARAM)&rect);
-
-	undoStrMap.emplace(edit, make_pair(_T(""), _T("")));
 }
 
-LRESULT CALLBACK numericEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+static LRESULT CALLBACK editSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	return ((NumericEdit*)GetWindowLongPtr(hEdit, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
+}
+
+void NumericEdit::attach(HWND hEdit)
+{
+	this->hEdit = hEdit;
+	SetWindowLongPtr(hEdit, GWLP_USERDATA, (LONG_PTR)this);
+	SetWindowSubclass(hEdit, editSubclassProc, 0, 0);
+	initNumericEdit(hEdit);
+}
+
+LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
-	case WM_KILLFOCUS:
-	{
-		TCHAR temp[10];
-		GetWindowText(hEdit, temp, 10);
-		auto& undoStr = undoStrMap.at(hEdit);
-		if (temp[0] == '\0' || lstrcmp(temp, undoStr.first.c_str()) == 0)
+	case WM_KEYDOWN:
+		if (wParam == VK_RETURN)
 		{
-			break;
-		}
-		undoStr.second = undoStr.first;
-		undoStr.first = temp;
-		break;
-	}
-	case EM_UNDO:
-	{
-		auto& undoStr = undoStrMap.at(hEdit);
-		TCHAR temp[10];
-		GetWindowText(hEdit, temp, 10);
-		if (undoStr.first.empty())
-		{
-			undoStr.first = temp;
+			updateStr();
 			return (INT_PTR)TRUE;
 		}
-		if (lstrcmp(temp, undoStr.first.c_str()) == 0)
+		break;
+	case WM_KILLFOCUS:
 		{
-			if (undoStr.second.empty())
+			updateStr();
+			break;
+		}
+	case EM_UNDO:
+		{
+			TCHAR temp[10];
+			GetWindowText(hEdit, temp, 10);
+			if (curUndo.empty())
 			{
+				curUndo = temp;
 				return (INT_PTR)TRUE;
 			}
-			undoStr.second.swap(undoStr.first);
+			if (lstrcmp(temp, curUndo.c_str()) == 0)
+			{
+				if (lastUndo.empty())
+				{
+					return (INT_PTR)TRUE;
+				}
+				lastUndo.swap(curUndo);
+			}
+			else if (temp[0] != '\0')
+			{
+				lastUndo = temp;
+			}
+			SetWindowText(hEdit, curUndo.c_str());
+			SendMessage(hEdit, EM_SETSEL, curUndo.size(), -1);
+			SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
+			return (INT_PTR)TRUE;
 		}
-		else if (temp[0] != '\0')
-		{
-			undoStr.second = temp;
-		}
-		SetWindowText(hEdit, undoStr.first.c_str());
-		SendMessage(hEdit, EM_SETSEL, undoStr.first.size(), -1);
-		SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
-		return (INT_PTR)TRUE;
-	}
 	case WM_PASTE:
 		OpenClipboard(hEdit);
 		wstring str;
@@ -109,6 +114,35 @@ LRESULT CALLBACK numericEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LP
 		return (INT_PTR)TRUE;
 	}
 	return DefSubclassProc(hEdit, msg, wParam, lParam);
+}
+
+HWND NumericEdit::getHwnd()
+{
+	return hEdit;
+}
+
+void NumericEdit::setText(LPCTSTR str)
+{
+	updateStr();
+	if (str[0] != '\0' && str != curUndo)
+	{
+		lastUndo = curUndo;
+		curUndo = str;
+	}
+	SetWindowText(hEdit, str);
+	SendMessage(hEdit, EM_SETSEL, lstrlen(str), -1);
+}
+
+void NumericEdit::updateStr()
+{
+	TCHAR temp[10];
+	GetWindowText(hEdit, temp, 10);
+	if (temp[0] == '\0' || temp == curUndo)
+	{
+		return;
+	}
+	lastUndo = curUndo;
+	curUndo = temp;
 }
 
 

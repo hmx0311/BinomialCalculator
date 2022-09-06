@@ -15,8 +15,8 @@ protected:
 	bool isTracking = false;
 public:
 	void attach(HWND hButton);
-	virtual LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
-	virtual void drawItem(HDC hDC, UINT itemState, RECT& rcItem);
+	LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
+	void drawItem(HDC hDC, UINT itemState, RECT& rcItem);
 	HWND getHwnd();
 	void setText(LPCWSTR str);
 	void setIcon(HICON hIcon);

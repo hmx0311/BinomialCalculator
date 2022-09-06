@@ -33,7 +33,7 @@
     <ClInclude Include="BinomialCalculator.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Button.h">
+    <ClInclude Include="button.h">
       <Filter>头文件\controls</Filter>
     </ClInclude>
     <ClInclude Include="edit.h">
@@ -42,7 +42,7 @@
     <ClInclude Include="model.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ResultList.h">
+    <ClInclude Include="listbox.h">
       <Filter>头文件\controls</Filter>
     </ClInclude>
   </ItemGroup>
@@ -50,7 +50,7 @@
     <ClCompile Include="BinomialCalculator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Button.cpp">
+    <ClCompile Include="button.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
     <ClCompile Include="model.cpp">
@@ -59,7 +59,7 @@
     <ClCompile Include="edit.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
-    <ClCompile Include="ResultList.cpp">
+    <ClCompile Include="listBox.cpp">
       <Filter>源文件\controls</Filter>
     </ClCompile>
   </ItemGroup>
