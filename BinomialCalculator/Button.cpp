@@ -7,6 +7,7 @@
 #define BUTTON_ANIMATION_DURATION_LONG  200
 
 #define BUTTON_MARGIN_RATIO 0.1f
+#define PRESSED_SQUEEZE 0.0625f
 
 HTHEME hButtonTheme;
 
@@ -67,32 +68,29 @@ void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
 	{
 		state = PBS_HOT;
 	}
-	HFONT hFont = (HFONT)SendMessage(hButton, WM_GETFONT, 0, 0);
-	BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
-	HDC hdcFrom, hdcTo;
-	HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, NULL, &animParams, &hdcFrom, &hdcTo);
-	if (lastState == state || hbpAnimation == nullptr)
+	if (lastState == state)
 	{
 		int width = rcItem.right - rcItem.left;
 		int height = rcItem.bottom - rcItem.top;
 		HBITMAP hBmBuffer = CreateCompatibleBitmap(hDC, width, height);
 		HDC hDCMem = CreateCompatibleDC(hDC);
 		SelectObject(hDCMem, hBmBuffer);
-		SelectObject(hDCMem, hFont);
 		drawButton(hDCMem, state, rcItem);
 		BitBlt(hDC, rcItem.left, rcItem.top, width, height, hDCMem, 0, 0, SRCCOPY);
 		DeleteDC(hDCMem);
 		DeleteObject(hBmBuffer);
+		return;
 	}
-	else
+	BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
+	HDC hDCFrom, hDCTo;
+	HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, NULL, &animParams, &hDCFrom, &hDCTo);
+	if (hDCFrom != nullptr)
 	{
-		SelectObject(hdcFrom, hFont);
-		SelectObject(hdcTo, hFont);
-		drawButton(hdcFrom, lastState, rcItem);
-		drawButton(hdcTo, state, rcItem);
-		BufferedPaintStopAllAnimations(hButton);
-		EndBufferedAnimation(hbpAnimation, TRUE);
+		drawButton(hDCFrom, lastState, rcItem);
 	}
+	drawButton(hDCTo, state, rcItem);
+	BufferedPaintStopAllAnimations(hButton);
+	EndBufferedAnimation(hbpAnimation, TRUE);
 	lastState = state;
 }
 
@@ -109,6 +107,15 @@ void Button::setText(LPCWSTR str)
 void Button::setIcon(HICON hIcon)
 {
 	this->hIcon = hIcon;
+	if (hIcon != nullptr)
+	{
+		ICONINFO iconInfo;
+		GetIconInfo(hIcon, &iconInfo);
+		BITMAP bmMask;
+		GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmMask);
+		iconWidth = bmMask.bmWidth;
+		iconHeight = bmMask.bmHeight;
+	}
 	InvalidateRect(hButton, nullptr, FALSE);
 }
 
@@ -121,43 +128,52 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 {
 	FillRect(hDC, &rcItem, hBkgBrush);
 	RECT rcContent = rcItem;
-	int margin;
+	int padding;
 	if (GetWindowLongPtr(hButton, GWL_STYLE) & BS_FLAT)
 	{
-		if (state == PBS_HOT)
+		padding = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top);
+		if (state == PBS_HOT || state == PBS_PRESSED)
 		{
-			FillRect(hDC, &rcItem, (HBRUSH)GetStockObject(LTGRAY_BRUSH));
+			HGDIOBJ oldBrush = SelectObject(hDC, GetStockObject(LTGRAY_BRUSH));
+			HGDIOBJ oldPen = SelectObject(hDC, GetStockObject(NULL_PEN));
+			RoundRect(hDC, rcContent.left, rcContent.top, rcContent.right + 1, rcContent.bottom + 1, 2 * padding, 2 * padding);
+			SelectObject(hDC, oldBrush);
+			SelectObject(hDC, oldPen);
 		}
-		margin = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top);
 	}
 	else
 	{
 		DrawThemeBackground(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, 0);
 		GetThemeBackgroundContentRect(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, &rcContent);
-		margin = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top) - 1;
+		padding = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top) - 1;
 	}
-	rcContent.left += margin;
-	rcContent.top += margin;
-	rcContent.right -= margin;
-	rcContent.bottom -= margin;
+	rcContent.left += padding;
+	rcContent.top += padding;
+	rcContent.right -= padding;
+	rcContent.bottom -= padding;
 
 	if (hIcon != nullptr)
 	{
-		ICONINFO iconInfo;
-		GetIconInfo(hIcon, &iconInfo);
-		BITMAP bmMask;
-		GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmMask);
 		HDC hDCImage = CreateCompatibleDC(hDC);
-		HBITMAP hBmBuffer = CreateCompatibleBitmap(hDC, bmMask.bmWidth, bmMask.bmHeight);
+		int xSqueeze = 0, ySqueeze = 0;
+		if (state == PBS_PRESSED)
+		{
+			xSqueeze = PRESSED_SQUEEZE * iconWidth;
+			ySqueeze = PRESSED_SQUEEZE * iconHeight;
+		}
+		HBITMAP hBmBuffer = CreateCompatibleBitmap(hDC, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze);
 		SelectObject(hDCImage, hBmBuffer);
 		SetStretchBltMode(hDCImage, HALFTONE);
-		StretchBlt(hDCImage, 0, 0, bmMask.bmWidth, bmMask.bmHeight, hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top, SRCCOPY);
-		DrawIcon(hDCImage, 0, 0, hIcon);
+		StretchBlt(hDCImage, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze,
+			hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top, SRCCOPY);
+		DrawIcon(hDCImage, xSqueeze, ySqueeze, hIcon);
 		SetStretchBltMode(hDC, HALFTONE);
-		StretchBlt(hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top, hDCImage, 0, 0, bmMask.bmWidth, bmMask.bmHeight, SRCCOPY);
+		StretchBlt(hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top,
+			hDCImage, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze, SRCCOPY);
 		DeleteObject(hBmBuffer);
 		DeleteObject(hDCImage);
 	}
+	SelectObject(hDC, (HFONT)SendMessage(hButton, WM_GETFONT, 0, 0));
 	SetBkMode(hDC, TRANSPARENT);
 	TCHAR str[10];
 	GetWindowText(hButton, str, 10);

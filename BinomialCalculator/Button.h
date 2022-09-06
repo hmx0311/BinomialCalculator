@@ -11,6 +11,8 @@ private:
 protected:
 	HWND hButton;
 	HICON hIcon = nullptr;
+	int iconWidth;
+	int iconHeight;
 	HBRUSH hBkgBrush = GetSysColorBrush(CTLCOLOR_DLG);
 	bool isTracking = false;
 public:
