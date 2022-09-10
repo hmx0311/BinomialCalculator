@@ -10,13 +10,16 @@
 #include "model.h"
 
 #include <CommCtrl.h>
+#include <windowsx.h>
 
 #pragma comment(lib,"comctl32.lib")
 #pragma comment(lib,"UxTheme.lib")
 
 #define MAX_LOADSTRING 100
 
+#define DISPLAYED_ITEM_COUNT 5
 #define LIST_ITEM_HEIGHT 1.36f
+#define LARGE_FONT_HEIGHT (1.2f * font.lfHeight - 2.5f)
 
 #define PROB_LEN 4
 #define NUM_LEN 8
@@ -60,7 +63,7 @@ void calcProbability();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
-	_In_ LPWSTR    lpCmdLine,
+	_In_ PTSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
@@ -69,6 +72,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// 执行应用程序初始化:
 	SetProcessDPIAware();
+	BufferedPaintInit();
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	hMainDlg = CreateDialog(hInst, MAKEINTRESOURCE(IDD_BINOMIALCALCULATOR_DIALOG), NULL, dlgProc);
@@ -156,6 +160,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 	}
 
+	BufferedPaintUnInit();
+
 	return (int)msg.wParam;
 }
 
@@ -168,7 +174,7 @@ BOOL initDlg(HWND hDlg)
 	hNormalFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
 	LOGFONT font;
 	GetObject(hNormalFont, sizeof(LOGFONT), &font);
-	font.lfHeight = 1.2f * font.lfHeight - 2.5f;
+	font.lfHeight = LARGE_FONT_HEIGHT;
 	hLargeFont = CreateFontIndirect(&font);
 
 	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), _T("Button"));
@@ -189,16 +195,15 @@ BOOL initDlg(HWND hDlg)
 	SendMessage(numTrialsEdit.getHwnd(), EM_SETLIMITTEXT, NUM_LEN, 0);
 	SendMessage(numSuccessEdit.getHwnd(), EM_SETLIMITTEXT, NUM_LEN, 0);
 
-	clearSuccessProbabilityButton.setBkgBrush((HBRUSH)GetStockObject(WHITE_BRUSH));
-	clearNumTrialsButton.setBkgBrush((HBRUSH)GetStockObject(WHITE_BRUSH));
-	clearNumSuccessButton.setBkgBrush((HBRUSH)GetStockObject(WHITE_BRUSH));
+	clearSuccessProbabilityButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
+	clearNumTrialsButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
+	clearNumSuccessButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
 
-	HICON hClearIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_CLEAR));
+	HICON hClearIcon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_CLEAR), IMAGE_ICON, 0, 0, LR_SHARED);
 	clearSuccessProbabilityButton.setIcon(hClearIcon);
 	clearNumTrialsButton.setIcon(hClearIcon);
 	clearNumSuccessButton.setIcon(hClearIcon);
-	HICON hBinIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_BIN));
-	clearHistoryResultButton.setIcon(hBinIcon);
+	clearHistoryResultButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_BIN), IMAGE_ICON, 0, 0, LR_SHARED));
 
 	// Create the tooltip. hInst is the global instance handle.
 	HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL,
@@ -231,38 +236,61 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	switch (message)
 	{
+	case WM_DPICHANGED:
+		{
+			hNormalFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+			LOGFONT font;
+			GetObject(hNormalFont, sizeof(LOGFONT), &font);
+			int listItemHeight = -LIST_ITEM_HEIGHT * font.lfHeight;
+			RECT rect;
+			GetWindowRect(historyResultListBox.getHwnd(), &rect);
+			SendMessage(historyResultListBox.getHwnd(), LB_SETITEMHEIGHT, 0, listItemHeight);
+			SetWindowPos(historyResultListBox.getHwnd(), nullptr, 0, 0, rect.right - rect.left, 4 + DISPLAYED_ITEM_COUNT * listItemHeight, SWP_NOMOVE);
+			font.lfHeight = LARGE_FONT_HEIGHT;
+			DeleteObject(hLargeFont);
+			hLargeFont = CreateFontIndirect(&font);
+			if (GetWindowLongPtr(hResultText, GWL_STYLE) & SS_CENTER)
+			{
+				SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+			}
+			break;
+		}
+	case WM_THEMECHANGED:
+		CloseThemeData(hButtonTheme);
+		hButtonTheme = OpenThemeData(clearSuccessProbabilityButton.getHwnd(), _T("Button"));
+		InvalidateRect(hDlg, nullptr, TRUE);
+		return (INT_PTR)TRUE;
 	case WM_INITDIALOG:
 		return (INT_PTR)initDlg(hDlg);
 	case WM_CTLCOLORSTATIC:
-		if ((HWND)lParam == hResultText && (HFONT)SendMessage(hResultText, WM_GETFONT, 0, 0) == hNormalFont)
+		if ((HWND)lParam == hResultText && !(GetWindowLongPtr(hResultText, GWL_STYLE) & SS_CENTER))
 		{
-			HDC hDC = (HDC)wParam;
-			SetTextColor(hDC, RGB(255, 0, 0));
-			SetBkColor(hDC, GetSysColor(CTLCOLOR_DLG));
-			return (INT_PTR)GetSysColorBrush(CTLCOLOR_DLG);
+			SetTextColor((HDC)wParam, RGB(255, 0, 0));
+			SetBkColor((HDC)wParam, GetSysColor(COLOR_BTNFACE));
+			return (INT_PTR)GetSysColorBrush(COLOR_BTNFACE);
 		}
 		break;
 	case WM_DRAWITEM:
 		{
-			LPDRAWITEMSTRUCT lpDrawItemStruct = (LPDRAWITEMSTRUCT)lParam;
-			HDC hDC = lpDrawItemStruct->hDC;
-			if (BufferedPaintRenderAnimation(lpDrawItemStruct->hwndItem, hDC))
+			PDRAWITEMSTRUCT pDrawItemStruct = (PDRAWITEMSTRUCT)lParam;
+			HDC hDC = pDrawItemStruct->hDC;
+			if (BufferedPaintRenderAnimation(pDrawItemStruct->hwndItem, hDC))
 			{
 				return (INT_PTR)TRUE;
 			}
-			switch (lpDrawItemStruct->CtlType)
+			switch (pDrawItemStruct->CtlType)
 			{
 			case ODT_BUTTON:
 				{
-					Button* button = (Button*)GetWindowLongPtr(lpDrawItemStruct->hwndItem, GWLP_USERDATA);
+					Button* button = (Button*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA);
 					if (button != nullptr)
 					{
-						button->drawItem(hDC, lpDrawItemStruct->itemState, lpDrawItemStruct->rcItem);
+						button->drawItem(hDC, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
 					}
 					break;
 				}
 			case ODT_LISTBOX:
-				((ResultList*)GetWindowLongPtr(lpDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, lpDrawItemStruct->itemID, lpDrawItemStruct->itemState, lpDrawItemStruct->rcItem);
+				((ResultList*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, pDrawItemStruct->itemID, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
 				break;
 			}
 			return (INT_PTR)TRUE;
@@ -272,7 +300,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			HFONT hFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
 			LOGFONT font;
 			GetObject(hFont, sizeof(LOGFONT), &font);
-			((LPMEASUREITEMSTRUCT)lParam)->itemHeight = -LIST_ITEM_HEIGHT * font.lfHeight;
+			((PMEASUREITEMSTRUCT)lParam)->itemHeight = -LIST_ITEM_HEIGHT * font.lfHeight;
 			return (INT_PTR)TRUE;
 		}
 	case WM_COMMAND:
@@ -398,6 +426,9 @@ void calcProbability()
 	if (successProbability == 0)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
+		style &= ~SS_CENTER;
+		SetWindowLongPtr(hResultText, GWL_STYLE, style);
 		SetWindowText(hResultText, _T("成功概率不能为0"));
 		SetFocus(successProbabilityEdit.getHwnd());
 		SendMessage(successProbabilityEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -406,6 +437,9 @@ void calcProbability()
 	if (numTrials == 0)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
+		style &= ~SS_CENTER;
+		SetWindowLongPtr(hResultText, GWL_STYLE, style);
 		SetWindowText(hResultText, _T("试验次数不能为0"));
 		SetFocus(numTrialsEdit.getHwnd());
 		SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -414,6 +448,9 @@ void calcProbability()
 	if (numSuccess == 0)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
+		style &= ~SS_CENTER;
+		SetWindowLongPtr(hResultText, GWL_STYLE, style);
 		SetWindowText(hResultText, _T("成功次数不能为0"));
 		SetFocus(numSuccessEdit.getHwnd());
 		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -422,6 +459,9 @@ void calcProbability()
 	if (numSuccess > numTrials)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
+		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
+		style &= ~SS_CENTER;
+		SetWindowLongPtr(hResultText, GWL_STYLE, style);
 		SetWindowText(hResultText, _T("成功次数不能大于试验次数"));
 		SetFocus(numSuccessEdit.getHwnd());
 		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -435,6 +475,9 @@ void calcProbability()
 	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
 		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
+	LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
+	style |= SS_CENTER;
+	SetWindowLongPtr(hResultText, GWL_STYLE, style);
 	SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
 	SetWindowText(hResultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 	historyResultListBox.addResult(str);

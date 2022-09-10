@@ -13,14 +13,14 @@ protected:
 	HICON hIcon = nullptr;
 	int iconWidth;
 	int iconHeight;
-	HBRUSH hBkgBrush = GetSysColorBrush(CTLCOLOR_DLG);
+	HBRUSH hBkgBrush = GetSysColorBrush(COLOR_BTNFACE);
 	bool isTracking = false;
 public:
 	void attach(HWND hButton);
 	LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
 	void drawItem(HDC hDC, UINT itemState, RECT& rcItem);
 	HWND getHwnd();
-	void setText(LPCWSTR str);
+	void setText(PCTSTR str);
 	void setIcon(HICON hIcon);
 	void setBkgBrush(HBRUSH hBkgBrush);
 private:

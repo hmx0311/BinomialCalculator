@@ -121,7 +121,7 @@ HWND NumericEdit::getHwnd()
 	return hEdit;
 }
 
-void NumericEdit::setText(LPCTSTR str)
+void NumericEdit::setText(PCTSTR str)
 {
 	updateStr();
 	if (str[0] != '\0' && str != curUndo)

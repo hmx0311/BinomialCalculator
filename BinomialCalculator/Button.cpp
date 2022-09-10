@@ -6,7 +6,7 @@
 #define BUTTON_ANIMATION_DURATION_SHORT 150
 #define BUTTON_ANIMATION_DURATION_LONG  200
 
-#define BUTTON_MARGIN_RATIO 0.1f
+#define BUTTON_MARGIN_RATIO 0.08f
 #define PRESSED_SQUEEZE 0.0625f
 
 HTHEME hButtonTheme;
@@ -68,17 +68,12 @@ void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
 	{
 		state = PBS_HOT;
 	}
-	if (lastState == state)
+	if (lastState == state || hButtonTheme == nullptr)
 	{
-		int width = rcItem.right - rcItem.left;
-		int height = rcItem.bottom - rcItem.top;
-		HBITMAP hBmBuffer = CreateCompatibleBitmap(hDC, width, height);
-		HDC hDCMem = CreateCompatibleDC(hDC);
-		SelectObject(hDCMem, hBmBuffer);
+		HDC hDCMem;
+		HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hDCMem);
 		drawButton(hDCMem, state, rcItem);
-		BitBlt(hDC, rcItem.left, rcItem.top, width, height, hDCMem, 0, 0, SRCCOPY);
-		DeleteDC(hDCMem);
-		DeleteObject(hBmBuffer);
+		EndBufferedPaint(hPaintBuffer, TRUE);
 		return;
 	}
 	BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
@@ -99,7 +94,7 @@ HWND Button::getHwnd()
 	return hButton;
 }
 
-void Button::setText(LPCWSTR str)
+void Button::setText(PCTSTR str)
 {
 	SetWindowText(hButton, str);
 }
@@ -143,9 +138,26 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	}
 	else
 	{
-		DrawThemeBackground(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, 0);
-		GetThemeBackgroundContentRect(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, &rcContent);
 		padding = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top) - 1;
+		if (hButtonTheme == nullptr)
+		{
+			UINT uStyle = DFCS_BUTTONPUSH;
+			if (state == PBS_PRESSED)
+			{
+				uStyle |= DFCS_PUSHED;
+				rcContent.left++;
+				rcContent.top++;
+				rcContent.right++;
+				rcContent.bottom++;
+			}
+			DrawFrameControl(hDC, &rcItem, DFC_BUTTON, uStyle);
+			padding += 2;
+		}
+		else
+		{
+			DrawThemeBackground(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, 0);
+			GetThemeBackgroundContentRect(hButtonTheme, hDC, BP_PUSHBUTTON, state, &rcItem, &rcContent);
+		}
 	}
 	rcContent.left += padding;
 	rcContent.top += padding;
@@ -156,7 +168,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	{
 		HDC hDCImage = CreateCompatibleDC(hDC);
 		int xSqueeze = 0, ySqueeze = 0;
-		if (state == PBS_PRESSED)
+		if (state == PBS_PRESSED && (hButtonTheme != nullptr || GetWindowLongPtr(hButton, GWL_STYLE) & BS_FLAT))
 		{
 			xSqueeze = PRESSED_SQUEEZE * iconWidth;
 			ySqueeze = PRESSED_SQUEEZE * iconHeight;
@@ -166,7 +178,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 		SetStretchBltMode(hDCImage, HALFTONE);
 		StretchBlt(hDCImage, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze,
 			hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top, SRCCOPY);
-		DrawIcon(hDCImage, xSqueeze, ySqueeze, hIcon);
+		DrawIconEx(hDCImage, xSqueeze, ySqueeze, hIcon, 0, 0, 0, nullptr, DI_NORMAL);
 		SetStretchBltMode(hDC, HALFTONE);
 		StretchBlt(hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top,
 			hDCImage, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze, SRCCOPY);
@@ -175,6 +187,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	}
 	SelectObject(hDC, (HFONT)SendMessage(hButton, WM_GETFONT, 0, 0));
 	SetBkMode(hDC, TRANSPARENT);
+	SetTextColor(hDC, GetSysColor(COLOR_BTNTEXT));
 	TCHAR str[10];
 	GetWindowText(hButton, str, 10);
 	DrawText(hDC, str, lstrlen(str), &rcContent, DT_SINGLELINE | DT_VCENTER | DT_CENTER);

@@ -4,6 +4,7 @@
 #include "BinomialCalculator.h"
 
 #include <CommCtrl.h>
+#include <uxtheme.h>
 #include <windowsx.h>
 
 static LRESULT listBoxSubclassProc(HWND hListBox, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -158,36 +159,29 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	{
 		return;
 	}
-	int width = rcItem.right - rcItem.left;
-	int height = rcItem.bottom - rcItem.top;
-	HBITMAP bmp = CreateCompatibleBitmap(hDC, width, height);
-	HDC hDCMem = CreateCompatibleDC(hDC);
-	SelectObject(hDCMem, bmp);
+	HDC hDCMem;
+	HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hDCMem);
 	SelectObject(hDCMem, hNormalFont);
-
-	RECT rcContent = { 0,0, rcItem.right, rcItem.bottom - rcItem.top };
 
 	if (itemState & ODS_HOTLIGHT || !isInClkRect)
 	{
-		FillRect(hDCMem, &rcContent, GetStockBrush(LTGRAY_BRUSH));
+		FillRect(hDCMem, &rcItem, GetStockBrush(LTGRAY_BRUSH));
 	}
 	else if (itemState & ODS_SELECTED)
 	{
-		FillRect(hDCMem, &rcContent, GetStockBrush(GRAY_BRUSH));
+		FillRect(hDCMem, &rcItem, GetStockBrush(GRAY_BRUSH));
 	}
 	else
 	{
-		FillRect(hDCMem, &rcContent, GetSysColorBrush(COLOR_WINDOW));
+		FillRect(hDCMem, &rcItem, GetSysColorBrush(COLOR_WINDOW));
 	}
 
 	SetBkMode(hDCMem, TRANSPARENT);
 	TCHAR sText[41];
 	SendMessage(hListBox, LB_GETTEXT, itemID, (LPARAM)sText);
-	DrawText(hDCMem, sText, -1, &rcContent, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-	BitBlt(hDC, rcItem.left, rcItem.top, width, height, hDCMem, 0, 0, SRCCOPY);
-	DeleteDC(hDCMem);
-	DeleteObject(bmp);
+	SetTextColor(hDCMem, GetSysColor(COLOR_WINDOWTEXT));
+	DrawText(hDCMem, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	EndBufferedPaint(hPaintBuffer,TRUE);
 }
 
 HWND ResultList::getHwnd()
@@ -195,7 +189,7 @@ HWND ResultList::getHwnd()
 	return hListBox;
 }
 
-void ResultList::addResult(LPCWSTR str)
+void ResultList::addResult(PCTSTR str)
 {
 	SendMessage(hListBox, LB_INSERTSTRING, 0, (LPARAM)str);
 	SendMessage(hListBox, LB_SETTOPINDEX, 0, 0);

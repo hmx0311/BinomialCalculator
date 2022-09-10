@@ -14,7 +14,7 @@ public:
 	void attach(HWND hEdit);
 	LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
 	HWND getHwnd();
-	void setText(LPCTSTR str);
+	void setText(PCTSTR str);
 private:
 	void updateStr();
 };
