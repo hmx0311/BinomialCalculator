@@ -291,19 +291,13 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			switch (pDrawItemStruct->CtlType)
 			{
 			case ODT_BUTTON:
-				{
-					Button* button = (Button*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA);
-					if (button != nullptr)
-					{
-						button->drawItem(hDC, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
-					}
-					break;
-				}
+				((Button*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
+				return (INT_PTR)TRUE;
 			case ODT_LISTBOX:
 				((ResultList*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, pDrawItemStruct->itemID, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
-				break;
+				return (INT_PTR)TRUE;
 			}
-			return (INT_PTR)TRUE;
+			break;
 		}
 	case WM_MEASUREITEM:
 		{

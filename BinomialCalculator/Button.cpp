@@ -94,11 +94,6 @@ HWND Button::getHwnd()
 	return hButton;
 }
 
-void Button::setText(PCTSTR str)
-{
-	SetWindowText(hButton, str);
-}
-
 void Button::setIcon(HICON hIcon)
 {
 	this->hIcon = hIcon;
