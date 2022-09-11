@@ -236,19 +236,30 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	switch (message)
 	{
+	case WM_INITDIALOG:
+		return (INT_PTR)initDlg(hDlg);
 	case WM_DPICHANGED:
 		{
 			hNormalFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
 			LOGFONT font;
 			GetObject(hNormalFont, sizeof(LOGFONT), &font);
 			int listItemHeight = -LIST_ITEM_HEIGHT * font.lfHeight;
-			RECT rect;
-			GetWindowRect(historyResultListBox.getHwnd(), &rect);
-			SendMessage(historyResultListBox.getHwnd(), LB_SETITEMHEIGHT, 0, listItemHeight);
-			SetWindowPos(historyResultListBox.getHwnd(), nullptr, 0, 0, rect.right - rect.left, 4 + DISPLAYED_ITEM_COUNT * listItemHeight, SWP_NOMOVE);
 			font.lfHeight = LARGE_FONT_HEIGHT;
 			DeleteObject(hLargeFont);
 			hLargeFont = CreateFontIndirect(&font);
+
+			SendMessage(historyResultListBox.getHwnd(), LB_SETITEMHEIGHT, 0, listItemHeight);
+			int listHeight = 4 + DISPLAYED_ITEM_COUNT * listItemHeight;
+			RECT rcList;
+			GetWindowRect(historyResultListBox.getHwnd(), &rcList);
+			MapWindowRect(HWND_DESKTOP, hDlg, &rcList);
+			SetWindowPos(historyResultListBox.getHwnd(), nullptr, 0, 0, rcList.right - rcList.left, listHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
+
+			RECT rcDlg;
+			GetWindowRect(hDlg, &rcDlg);
+			MapWindowRect(HWND_DESKTOP, hDlg, &rcDlg);
+			SetWindowPos(hDlg, nullptr, 0, 0, rcList.right + rcList.left - 2 * rcDlg.left, rcList.top + listHeight + rcList.left - rcDlg.top - rcDlg.left, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
+
 			if (GetWindowLongPtr(hResultText, GWL_STYLE) & SS_CENTER)
 			{
 				SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
@@ -260,16 +271,15 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		hButtonTheme = OpenThemeData(clearSuccessProbabilityButton.getHwnd(), _T("Button"));
 		InvalidateRect(hDlg, nullptr, TRUE);
 		return (INT_PTR)TRUE;
-	case WM_INITDIALOG:
-		return (INT_PTR)initDlg(hDlg);
 	case WM_CTLCOLORSTATIC:
+		SetBkColor((HDC)wParam, GetSysColor(COLOR_BTNFACE));
 		if ((HWND)lParam == hResultText && !(GetWindowLongPtr(hResultText, GWL_STYLE) & SS_CENTER))
 		{
 			SetTextColor((HDC)wParam, RGB(255, 0, 0));
-			SetBkColor((HDC)wParam, GetSysColor(COLOR_BTNFACE));
 			return (INT_PTR)GetSysColorBrush(COLOR_BTNFACE);
 		}
-		break;
+		SetTextColor((HDC)wParam, GetSysColor(COLOR_WINDOWTEXT));
+		return (INT_PTR)GetStockObject(NULL_BRUSH);
 	case WM_DRAWITEM:
 		{
 			PDRAWITEMSTRUCT pDrawItemStruct = (PDRAWITEMSTRUCT)lParam;

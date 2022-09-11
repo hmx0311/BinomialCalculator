@@ -2,7 +2,7 @@
 
 #include <string>
 
-void initNumericEdit(HWND hEdit);
+void setVCentered(HWND hEdit);
 
 class NumericEdit
 {
