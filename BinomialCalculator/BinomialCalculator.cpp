@@ -121,35 +121,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				break;
 			case VK_ESCAPE:
 				continue;
-			case VK_UP:
-				switch (GetDlgCtrlID(GetFocus()))
-				{
-				case IDC_SUCCESS_PROBABILITY_EDIT:
-					continue;
-				case IDC_NUM_TRIALS_EDIT:
-					SetFocus(successProbabilityEdit.getHwnd());
-					SendMessage(successProbabilityEdit.getHwnd(), EM_SETSEL, 0, -1);
-					continue;
-				case IDC_NUM_SUCCESS_EDIT:
-					SetFocus(numTrialsEdit.getHwnd());
-					SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
-					continue;
-				}
-				break;
-			case VK_DOWN:
-				switch (GetDlgCtrlID(GetFocus()))
-				{
-				case IDC_SUCCESS_PROBABILITY_EDIT:
-					SetFocus(numTrialsEdit.getHwnd());
-					SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
-					continue;
-				case IDC_NUM_TRIALS_EDIT:
-					SetFocus(numSuccessEdit.getHwnd());
-					SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
-					continue;
-				case IDC_NUM_SUCCESS_EDIT:
-					continue;
-				}
 			}
 			break;
 		}
@@ -191,10 +162,6 @@ BOOL initDlg(HWND hDlg)
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
-	SendMessage(successProbabilityEdit.getHwnd(), EM_SETLIMITTEXT, PROB_LEN, 0);
-	SendMessage(numTrialsEdit.getHwnd(), EM_SETLIMITTEXT, NUM_LEN, 0);
-	SendMessage(numSuccessEdit.getHwnd(), EM_SETLIMITTEXT, NUM_LEN, 0);
-
 	clearSuccessProbabilityButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
 	clearNumTrialsButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
 	clearNumSuccessButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
@@ -206,6 +173,8 @@ BOOL initDlg(HWND hDlg)
 	clearHistoryResultButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_BIN), IMAGE_ICON, 0, 0, LR_SHARED));
 
 	// Create the tooltip. hInst is the global instance handle.
+	INITCOMMONCONTROLSEX icex = { sizeof(icex),ICC_TREEVIEW_CLASSES };
+	InitCommonControlsEx(&icex);
 	HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL,
 		WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX,
 		CW_USEDEFAULT, CW_USEDEFAULT,
@@ -430,9 +399,7 @@ void calcProbability()
 	if (successProbability == 0)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
-		style &= ~SS_CENTER;
-		SetWindowLongPtr(hResultText, GWL_STYLE, style);
+		SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("成功概率不能为0"));
 		SetFocus(successProbabilityEdit.getHwnd());
 		SendMessage(successProbabilityEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -441,9 +408,7 @@ void calcProbability()
 	if (numTrials == 0)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
-		style &= ~SS_CENTER;
-		SetWindowLongPtr(hResultText, GWL_STYLE, style);
+		SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("试验次数不能为0"));
 		SetFocus(numTrialsEdit.getHwnd());
 		SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -452,9 +417,7 @@ void calcProbability()
 	if (numSuccess == 0)
 	{
 		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
-		style &= ~SS_CENTER;
-		SetWindowLongPtr(hResultText, GWL_STYLE, style);
+		SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("成功次数不能为0"));
 		SetFocus(numSuccessEdit.getHwnd());
 		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, -1);
@@ -479,9 +442,7 @@ void calcProbability()
 	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
 		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
-	LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
-	style |= SS_CENTER;
-	SetWindowLongPtr(hResultText, GWL_STYLE, style);
+	SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE)| SS_CENTER);
 	SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
 	SetWindowText(hResultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 	historyResultListBox.addResult(str);

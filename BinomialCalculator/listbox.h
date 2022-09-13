@@ -4,7 +4,7 @@ class ResultList
 {
 private:
 	HWND hListBox;
-	int resultCnt = 0;
+	bool isEmpty = true;
 	bool isTracking = false;
 	int lastTrackItemID = -1;
 	bool isInClkRect = true;

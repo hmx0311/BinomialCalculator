@@ -2,8 +2,6 @@
 
 #include <string>
 
-void setVCentered(HWND hEdit);
-
 class NumericEdit
 {
 private:
@@ -16,6 +14,7 @@ public:
 	HWND getHwnd();
 	void setText(PCTSTR str);
 private:
+	void initRect();
 	void updateStr();
 };
 

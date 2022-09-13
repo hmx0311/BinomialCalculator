@@ -34,6 +34,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			return (LRESULT)TRUE;
 		}
+	case WM_CHAR:
 	case WM_KEYDOWN:
 		return (LRESULT)TRUE;
 	case WM_LBUTTONDBLCLK:
@@ -41,7 +42,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_MOUSEMOVE:
 		{
-			if (resultCnt == 0)
+			if (isEmpty)
 			{
 				return (LRESULT)TRUE;
 			}
@@ -111,7 +112,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			return (LRESULT)TRUE;
 		}
 	case WM_LBUTTONUP:
-		if (resultCnt > 0)
+		if (!isEmpty)
 		{
 			SendMessage(hListBox, LB_SETCURSEL, -1, 0);
 			if (isInClkRect && lastTrackItemID != -1)
@@ -181,7 +182,7 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	SendMessage(hListBox, LB_GETTEXT, itemID, (LPARAM)sText);
 	SetTextColor(hDCMem, GetSysColor(COLOR_WINDOWTEXT));
 	DrawText(hDCMem, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-	EndBufferedPaint(hPaintBuffer,TRUE);
+	EndBufferedPaint(hPaintBuffer, TRUE);
 }
 
 HWND ResultList::getHwnd()
@@ -191,13 +192,24 @@ HWND ResultList::getHwnd()
 
 void ResultList::addResult(PCTSTR str)
 {
+	int i = SendMessage(hListBox, LB_FINDSTRING, -1, (LPARAM)str);
+	if (i == 0)
+	{
+		return;
+	}
+	if (i > 0)
+	{
+		SendMessage(hListBox, LB_DELETESTRING, i, 0);
+	}
 	SendMessage(hListBox, LB_INSERTSTRING, 0, (LPARAM)str);
 	SendMessage(hListBox, LB_SETTOPINDEX, 0, 0);
-	resultCnt++;
+	lastTrackItemID = -1;
+	isInClkRect = true;
+	isEmpty = false;
 }
 
 void ResultList::reset()
 {
 	SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
-	resultCnt = 0;
+	isEmpty = true;
 }
