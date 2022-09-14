@@ -12,14 +12,16 @@
 #define IDC_SUCCESS_PROBABILITY_EDIT    1000
 #define IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON 1001
 #define IDC_NUM_TRIALS_EDIT             1002
-#define IDC_CLEAR_NUM_TRIALS_BUTTON     1003
-#define IDC_NUM_SUCCESS_EDIT            1004
-#define IDC_CLEAR_NUM_SUCCESS_BUTTON    1005
-#define IDC_RESULT_TEXT                 1006
-#define IDC_CALCULATE_BUTTON            1007
-#define IDC_HISTORY_RESULT_LISTBOX      1008
-#define IDC_CLEAR_HISTORY_RESULT_BUTTON 1009
-#define ID_RETRIEVE_RESULT				32771
+#define IDC_NUM_TRIALS_SPIN             1003
+#define IDC_CLEAR_NUM_TRIALS_BUTTON     1004
+#define IDC_NUM_SUCCESS_EDIT            1005
+#define IDC_NUM_SUCCESS_SPIN            1006
+#define IDC_CLEAR_NUM_SUCCESS_BUTTON    1007
+#define IDC_RESULT_TEXT                 1008
+#define IDC_CALCULATE_BUTTON            1009
+#define IDC_HISTORY_RESULT_LISTBOX      1010
+#define IDC_CLEAR_HISTORY_RESULT_BUTTON 1011
+#define ID_RETRIEVE_RESULT              32771
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -29,7 +31,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1010
+#define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

@@ -37,6 +37,12 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_KILLFOCUS:
 		updateStr();
 		break;
+	case EM_SETSEL:
+		if (wParam == 0 && lParam == -1)
+		{
+			return (INT_PTR)TRUE;
+		}
+		break;
 	case EM_UNDO:
 		{
 			TCHAR temp[10];
