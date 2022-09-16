@@ -27,7 +27,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			RECT rect;
 			GetClientRect(hListBox, &rect);
-			rect.top += (SendMessage(hListBox, LB_GETCOUNT, 0, 0) - GetScrollPos(hListBox, SB_VERT)) * SendMessage(hListBox, LB_GETITEMHEIGHT, 0, 0);
+			rect.top += (ListBox_GetCount(hListBox) - GetScrollPos(hListBox, SB_VERT)) * ListBox_GetItemHeight(hListBox, 0);
 			if (rect.top < rect.bottom)
 			{
 				FillRect((HDC)wParam, &rect, GetSysColorBrush(COLOR_WINDOW));
@@ -60,7 +60,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					return (LRESULT)TRUE;
 				}
 				RECT rcItem;
-				SendMessage(hListBox, LB_GETITEMRECT, lastTrackItemID, (WPARAM)&rcItem);
+				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcItem);
 				if (PtInRect(&rcItem, pos))
 				{
 					if (!isInClkRect)
@@ -86,7 +86,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			{
 				int itemID = (short)LOWORD(SendMessage(hListBox, LB_ITEMFROMPOINT, 0, lParam));
 				RECT rcItem;
-				SendMessage(hListBox, LB_GETITEMRECT, itemID, (WPARAM)&rcItem);
+				ListBox_GetItemRect(hListBox, itemID, &rcItem);
 				if (!PtInRect(&rcItem, pos))
 				{
 					itemID = -1;
@@ -99,7 +99,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				if (lastTrackItemID != -1)
 				{
 					RECT rcLast;
-					SendMessage(hListBox, LB_GETITEMRECT, lastTrackItemID, (WPARAM)&rcLast);
+					ListBox_GetItemRect(hListBox, lastTrackItemID, &rcLast);
 					drawItem(hDC, lastTrackItemID, 0, rcLast);
 				}
 				if (itemID != -1)
@@ -114,13 +114,13 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONUP:
 		if (!isEmpty)
 		{
-			SendMessage(hListBox, LB_SETCURSEL, -1, 0);
+			ListBox_SetCurSel(hListBox, -1);
 			if (isInClkRect && lastTrackItemID != -1)
 			{
 				RECT rcItem;
-				SendMessage(hListBox, LB_GETITEMRECT, lastTrackItemID, (WPARAM)&rcItem);
+				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcItem);
 				TCHAR str[41];
-				SendMessage(hListBox, LB_GETTEXT, lastTrackItemID, (LPARAM)str);
+				ListBox_GetText(hListBox, lastTrackItemID, str);
 				SendMessage(GetParent(hListBox), WM_COMMAND, ID_RETRIEVE_RESULT, (LPARAM)str);
 				HDC hDC = GetDC(hListBox);
 				drawItem(hDC, lastTrackItemID, ODS_HOTLIGHT, rcItem);
@@ -135,18 +135,18 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			if (lastTrackItemID != -1)
 			{
 				RECT rcLast;
-				SendMessage(hListBox, LB_GETITEMRECT, lastTrackItemID, (WPARAM)&rcLast);
+				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcLast);
 				HDC hDC = GetDC(hListBox);
 				drawItem(hDC, lastTrackItemID, 0, rcLast);
 				ReleaseDC(hListBox, hDC);
 			}
-			SendMessage(hListBox, LB_SETCURSEL, -1, 0);
+			ListBox_SetCurSel(hListBox, -1);
 			lastTrackItemID = -1;
 			isInClkRect = true;
 			break;
 		}
 	case WM_MOUSEWHEEL:
-		SendMessage(hListBox, LB_SETCURSEL, -1, 0);
+		ListBox_SetCurSel(hListBox, -1);
 		lastTrackItemID = -1;
 		isInClkRect = true;
 		break;
@@ -179,7 +179,7 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 
 	SetBkMode(hDCMem, TRANSPARENT);
 	TCHAR sText[41];
-	SendMessage(hListBox, LB_GETTEXT, itemID, (LPARAM)sText);
+	ListBox_GetText(hListBox, itemID, sText);
 	SetTextColor(hDCMem, GetSysColor(COLOR_WINDOWTEXT));
 	DrawText(hDCMem, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 	EndBufferedPaint(hPaintBuffer, TRUE);
@@ -192,17 +192,17 @@ HWND ResultList::getHwnd()
 
 void ResultList::addResult(PCTSTR str)
 {
-	int i = SendMessage(hListBox, LB_FINDSTRING, -1, (LPARAM)str);
+	int i = ListBox_FindString(hListBox, -1, str);
 	if (i == 0)
 	{
 		return;
 	}
 	if (i > 0)
 	{
-		SendMessage(hListBox, LB_DELETESTRING, i, 0);
+		ListBox_DeleteString(hListBox, i);
 	}
-	SendMessage(hListBox, LB_INSERTSTRING, 0, (LPARAM)str);
-	SendMessage(hListBox, LB_SETTOPINDEX, 0, 0);
+	ListBox_InsertString(hListBox, 0, str);
+	ListBox_SetTopIndex(hListBox, 0);
 	lastTrackItemID = -1;
 	isInClkRect = true;
 	isEmpty = false;
@@ -210,6 +210,6 @@ void ResultList::addResult(PCTSTR str)
 
 void ResultList::reset()
 {
-	SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
+	ListBox_ResetContent(hListBox);
 	isEmpty = true;
 }

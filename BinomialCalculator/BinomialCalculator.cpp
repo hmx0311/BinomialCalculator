@@ -36,13 +36,10 @@ HFONT hLargeFont;
 
 HWND hMainDlg;
 NumericEdit successProbabilityEdit;
-Button clearSuccessProbabilityButton;
 NumericEdit numTrialsEdit;
 HWND hNumTrialsSpin;
-Button clearNumTrialsButton;
 NumericEdit numSuccessEdit;
 HWND hNumSuccessSpin;
-Button clearNumSuccessButton;
 HWND hResultText;
 Button calculateButton;
 Button clearHistoryResultButton;
@@ -60,7 +57,8 @@ UINT BPC_PROBABILITY;
 // 此代码模块中包含的函数的前向声明:
 BOOL                initDlg(HWND);
 INT_PTR CALLBACK    dlgProc(HWND, UINT, WPARAM, LPARAM);
-void showSpin(HWND hSpin, HWND hEdit);
+void showEditSpin(HWND hSpin, HWND hEdit);
+void hideEditSpin(HWND hSpin, HWND hEdit);
 void updateSuccessProbability();
 void updateNumTrials();
 void updateNumSuccess();
@@ -143,41 +141,33 @@ BOOL initDlg(HWND hDlg)
 	SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 	SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
 
-	hNormalFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+	hNormalFont = GetWindowFont(hDlg);
 	LOGFONT logFont;
 	GetObject(hNormalFont, sizeof(LOGFONT), &logFont);
 	logFont.lfHeight = LARGE_FONT_HEIGHT;
 	hLargeFont = CreateFontIndirect(&logFont);
 
-	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON), _T("Button"));
+	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON), _T("Button"));
 
 	successProbabilityEdit.attach(GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT));
-	clearSuccessProbabilityButton.attach(GetDlgItem(hDlg, IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON));
 	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT));
 	hNumTrialsSpin = GetDlgItem(hDlg, IDC_NUM_TRIALS_SPIN);
-	clearNumTrialsButton.attach(GetDlgItem(hDlg, IDC_CLEAR_NUM_TRIALS_BUTTON));
 	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT));
 	hNumSuccessSpin = GetDlgItem(hDlg, IDC_NUM_SUCCESS_SPIN);
-	clearNumSuccessButton.attach(GetDlgItem(hDlg, IDC_CLEAR_NUM_SUCCESS_BUTTON));
 	hResultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
 	SetWindowSubclass(hResultText, readOnlyEditSubclassProc, 0, 0);
 	calculateButton.attach(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON));
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
-	clearSuccessProbabilityButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
-	clearNumTrialsButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
-	clearNumSuccessButton.setBkgBrush(GetSysColorBrush(COLOR_WINDOW));
-
-	HICON hClearIcon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_CLEAR), IMAGE_ICON, 0, 0, LR_SHARED);
-	clearSuccessProbabilityButton.setIcon(hClearIcon);
-	clearNumTrialsButton.setIcon(hClearIcon);
-	clearNumSuccessButton.setIcon(hClearIcon);
 	clearHistoryResultButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_BIN), IMAGE_ICON, 0, 0, LR_SHARED));
 
-	showSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
+	Edit_LimitText(numTrialsEdit.getHwnd(), NUM_LEN);
+	Edit_LimitText(numSuccessEdit.getHwnd(), NUM_LEN);
+
+	showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
 	SendMessage(hNumTrialsSpin, UDM_SETBUDDY, (WPARAM)numTrialsEdit.getHwnd(), 0);
-	showSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
+	showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 	SendMessage(hNumSuccessSpin, UDM_SETBUDDY, (WPARAM)numSuccessEdit.getHwnd(), 0);
 
 	// Create the tooltip. hInst is the global instance handle.
@@ -217,7 +207,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		return (INT_PTR)initDlg(hDlg);
 	case WM_DPICHANGED:
 		{
-			hNormalFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+			hNormalFont = GetWindowFont(hDlg);
 			LOGFONT logFont;
 			GetObject(hNormalFont, sizeof(LOGFONT), &logFont);
 			int listItemHeight = LIST_ITEM_HEIGHT;
@@ -225,7 +215,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			DeleteObject(hLargeFont);
 			hLargeFont = CreateFontIndirect(&logFont);
 
-			SendMessage(historyResultListBox.getHwnd(), LB_SETITEMHEIGHT, 0, listItemHeight);
+			ListBox_SetItemHeight(historyResultListBox.getHwnd(), 0, listItemHeight);
 			int listHeight = 4 + DISPLAYED_ITEM_COUNT * listItemHeight;
 			RECT rcList;
 			GetWindowRect(historyResultListBox.getHwnd(), &rcList);
@@ -234,11 +224,11 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			if (IsWindowVisible(hNumTrialsSpin))
 			{
-				showSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
+				showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
 			}
 			if (IsWindowVisible(hNumSuccessSpin))
 			{
-				showSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
+				showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 			}
 
 			RECT rcDlg;
@@ -246,19 +236,19 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			MapWindowRect(HWND_DESKTOP, hDlg, &rcDlg);
 			SetWindowPos(hDlg, nullptr, 0, 0, rcList.right + rcList.left - 2 * rcDlg.left, rcList.top + listHeight + rcList.left - rcDlg.top - rcDlg.left, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
 
-			if (GetWindowLongPtr(hResultText, GWL_STYLE) & SS_CENTER)
+			if (GetWindowStyle(hResultText) & SS_CENTER)
 			{
-				SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+				SetWindowFont(hResultText, hLargeFont, FALSE);
 			}
 			break;
 		}
 	case WM_THEMECHANGED:
 		CloseThemeData(hButtonTheme);
-		hButtonTheme = OpenThemeData(clearSuccessProbabilityButton.getHwnd(), _T("Button"));
+		hButtonTheme = OpenThemeData(calculateButton.getHwnd(), _T("Button"));
 		InvalidateRect(hDlg, nullptr, TRUE);
 		return (INT_PTR)TRUE;
 	case WM_CTLCOLORSTATIC:
-		if ((HWND)lParam == hResultText && !(GetWindowLongPtr(hResultText, GWL_STYLE) & SS_CENTER))
+		if ((HWND)lParam == hResultText && !(GetWindowStyle(hResultText) & SS_CENTER))
 		{
 			SetBkColor((HDC)wParam, GetSysColor(COLOR_BTNFACE));
 			SetTextColor((HDC)wParam, RGB(255, 0, 0));
@@ -286,7 +276,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	case WM_MEASUREITEM:
 		{
-			HFONT hFont = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+			HFONT hFont = GetWindowFont(hDlg);
 			LOGFONT logFont;
 			GetObject(hFont, sizeof(LOGFONT), &logFont);
 			((PMEASUREITEMSTRUCT)lParam)->itemHeight = LIST_ITEM_HEIGHT;
@@ -315,7 +305,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				TCHAR str[2 * (PROB_LEN + 2) + 3];
 				_stprintf(str, _T("%." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"), cumulativeProbability, 1 - cumulativeProbability);
-				SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+				SetWindowFont(hResultText, hLargeFont, FALSE);
 				SetWindowText(hResultText, str);
 				return (INT_PTR)TRUE;
 			}
@@ -348,25 +338,6 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				return (INT_PTR)TRUE;
 			}
 			break;
-		case IDC_CLEAR_SUCCESS_PROBABILITY_BUTTON:
-			SetWindowText(hResultText, _T(""));
-			successProbabilityEdit.setText(_T(""));
-			SetFocus(successProbabilityEdit.getHwnd());
-			return (INT_PTR)TRUE;
-		case IDC_CLEAR_NUM_TRIALS_BUTTON:
-			ShowWindow(hNumTrialsSpin, SW_SHOW);
-			SetWindowText(hResultText, _T(""));
-			numTrialsEdit.setText(_T(""));
-			numTrials = 0;
-			SetFocus(numTrialsEdit.getHwnd());
-			return (INT_PTR)TRUE;
-		case IDC_CLEAR_NUM_SUCCESS_BUTTON:
-			ShowWindow(hNumSuccessSpin, SW_SHOW);
-			SetWindowText(hResultText, _T(""));
-			numSuccessEdit.setText(_T(""));
-			numSuccess = 0;
-			SetFocus(numSuccessEdit.getHwnd());
-			return (INT_PTR)TRUE;
 		case IDC_CALCULATE_BUTTON:
 			calcProbability();
 			return (INT_PTR)TRUE;
@@ -391,17 +362,18 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (numTrials > MAX_DECIMAL(SPIN_LEN))
 				{
-					SetWindowPos(hNumTrialsSpin, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_HIDEWINDOW);
+					hideEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
 				}
 				else if (!IsWindowVisible(hNumTrialsSpin))
 				{
-					showSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
+					showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
 				}
 				SetWindowText(hResultText, _T(""));
 				TCHAR str[NUM_LEN + 1];
 				_itow(numTrials, str, 10);
 				SetWindowText(numTrialsEdit.getHwnd(), str);
-				SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, lstrlen(str), -1);
+				Edit_SetSel(numTrialsEdit.getHwnd(), lstrlen(str), -1);
+				SetFocus(numTrialsEdit.getHwnd());
 				break;
 			}
 		case IDC_NUM_SUCCESS_SPIN:
@@ -417,17 +389,18 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				if (numSuccess > MAX_DECIMAL(SPIN_LEN))
 				{
-					SetWindowPos(hNumSuccessSpin, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_HIDEWINDOW);
+					hideEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 				}
 				else
 				{
-					showSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
+					showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 				}
 				SetWindowText(hResultText, _T(""));
 				TCHAR str[NUM_LEN + 1];
 				_itow(numSuccess, str, 10);
 				SetWindowText(numSuccessEdit.getHwnd(), str);
-				SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, lstrlen(str), -1);
+				Edit_SetSel(numSuccessEdit.getHwnd(), lstrlen(str), -1);
+				SetFocus(numSuccessEdit.getHwnd());
 				break;
 			}
 		}
@@ -444,7 +417,12 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-void showSpin(HWND hSpin, HWND hEdit)
+void hideEditSpin(HWND hSpin, HWND hEdit)
+{
+	SetWindowPos(hSpin, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_HIDEWINDOW);
+}
+
+void showEditSpin(HWND hSpin, HWND hEdit)
 {
 	RECT rcSpin, rcEdit;
 	GetWindowRect(hSpin, &rcSpin);
@@ -479,7 +457,7 @@ void updateNumTrials()
 	}
 	else if (!IsWindowVisible(hNumTrialsSpin))
 	{
-		showSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
+		showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
 	}
 }
 
@@ -494,7 +472,7 @@ void updateNumSuccess()
 	}
 	else if (!IsWindowVisible(hNumSuccessSpin))
 	{
-		showSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
+		showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 	}
 }
 
@@ -502,40 +480,38 @@ void calcProbability()
 {
 	if (successProbability == 0)
 	{
-		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) & ~SS_CENTER);
+		SetWindowFont(hResultText, hNormalFont, FALSE);
+		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("成功概率不能为0"));
 		SetFocus(successProbabilityEdit.getHwnd());
-		SendMessage(successProbabilityEdit.getHwnd(), EM_SETSEL, 0, INT_MAX);
+		Edit_SetSel(successProbabilityEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	if (numTrials == 0)
 	{
-		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) & ~SS_CENTER);
+		SetWindowFont(hResultText, hNormalFont, FALSE);
+		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("试验次数不能为0"));
 		SetFocus(numTrialsEdit.getHwnd());
-		SendMessage(numTrialsEdit.getHwnd(), EM_SETSEL, 0, INT_MAX);
+		Edit_SetSel(numTrialsEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	if (numSuccess == 0)
 	{
-		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) & ~SS_CENTER);
+		SetWindowFont(hResultText, hNormalFont, FALSE);
+		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("成功次数不能为0"));
 		SetFocus(numSuccessEdit.getHwnd());
-		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, INT_MAX);
+		Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	if (numSuccess > numTrials)
 	{
-		SendMessage(hResultText, WM_SETFONT, (WPARAM)hNormalFont, FALSE);
-		LONG_PTR style = GetWindowLongPtr(hResultText, GWL_STYLE);
-		style &= ~SS_CENTER;
-		SetWindowLongPtr(hResultText, GWL_STYLE, style);
+		SetWindowFont(hResultText, hNormalFont, FALSE);
+		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
 		SetWindowText(hResultText, _T("成功次数不能大于试验次数"));
 		SetFocus(numSuccessEdit.getHwnd());
-		SendMessage(numSuccessEdit.getHwnd(), EM_SETSEL, 0, INT_MAX);
+		Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
@@ -546,8 +522,8 @@ void calcProbability()
 	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
 		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
-	SetWindowLongPtr(hResultText, GWL_STYLE, GetWindowLongPtr(hResultText, GWL_STYLE) | SS_CENTER);
-	SendMessage(hResultText, WM_SETFONT, (WPARAM)hLargeFont, FALSE);
+	SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) | SS_CENTER);
+	SetWindowFont(hResultText, hLargeFont, FALSE);
 	SetWindowText(hResultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 	historyResultListBox.addResult(str);
 }

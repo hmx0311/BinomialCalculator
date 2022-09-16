@@ -2,6 +2,7 @@
 #include "button.h"
 
 #include <CommCtrl.h>
+#include <windowsx.h>
 
 #define BUTTON_ANIMATION_DURATION_SHORT 150
 #define BUTTON_ANIMATION_DURATION_LONG  200
@@ -119,7 +120,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	FillRect(hDC, &rcItem, hBkgBrush);
 	RECT rcContent = rcItem;
 	int padding;
-	if (GetWindowLongPtr(hButton, GWL_STYLE) & BS_FLAT)
+	if (GetWindowStyle(hButton) & BS_FLAT)
 	{
 		padding = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top);
 		if (state == PBS_HOT || state == PBS_PRESSED)
@@ -163,7 +164,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	{
 		HDC hDCImage = CreateCompatibleDC(hDC);
 		int xSqueeze = 0, ySqueeze = 0;
-		if (state == PBS_PRESSED && (hButtonTheme != nullptr || GetWindowLongPtr(hButton, GWL_STYLE) & BS_FLAT))
+		if (state == PBS_PRESSED && (hButtonTheme != nullptr || GetWindowStyle(hButton) & BS_FLAT))
 		{
 			xSqueeze = PRESSED_SQUEEZE * iconWidth;
 			ySqueeze = PRESSED_SQUEEZE * iconHeight;
@@ -180,7 +181,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 		DeleteObject(hBmBuffer);
 		DeleteObject(hDCImage);
 	}
-	SelectObject(hDC, (HFONT)SendMessage(hButton, WM_GETFONT, 0, 0));
+	SelectObject(hDC, GetWindowFont(hButton));
 	SetBkMode(hDC, TRANSPARENT);
 	SetTextColor(hDC, GetSysColor(COLOR_BTNTEXT));
 	TCHAR str[10];
