@@ -162,6 +162,7 @@ BOOL initDlg(HWND hDlg)
 
 	clearHistoryResultButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_BIN), IMAGE_ICON, 0, 0, LR_SHARED));
 
+	Edit_LimitText(successProbabilityEdit.getHwnd(), PROB_LEN);
 	Edit_LimitText(numTrialsEdit.getHwnd(), NUM_LEN);
 	Edit_LimitText(numSuccessEdit.getHwnd(), NUM_LEN);
 
@@ -453,7 +454,7 @@ void updateNumTrials()
 	numTrials = _wtoi(str);
 	if (lstrlen(str) > SPIN_LEN)
 	{
-		SetWindowPos(hNumTrialsSpin, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_HIDEWINDOW);
+		hideEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
 	}
 	else if (!IsWindowVisible(hNumTrialsSpin))
 	{
@@ -468,7 +469,7 @@ void updateNumSuccess()
 	numSuccess = _wtoi(str);
 	if (lstrlen(str) > SPIN_LEN)
 	{
-		SetWindowPos(hNumSuccessSpin, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_HIDEWINDOW);
+		hideEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 	}
 	else if (!IsWindowVisible(hNumSuccessSpin))
 	{
