@@ -70,6 +70,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case EM_UNDO:
+	case WM_UNDO:
 		{
 			TCHAR temp[10];
 			GetWindowText(hEdit, temp, 10);
