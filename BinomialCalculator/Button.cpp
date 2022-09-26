@@ -51,11 +51,12 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				RECT rcItem;
 				GetClientRect(hButton, &rcItem);
 				PUSHBUTTONSTATES state = PBS_NORMAL;
-				if (Button_GetState(hButton) & BST_PUSHED)
+				int bst = Button_GetState(hButton);
+				if (bst & BST_PUSHED)
 				{
 					state = PBS_PRESSED;
 				}
-				else if (Button_GetState(hButton) & BST_HOT)
+				else if (bst & BST_HOT)
 				{
 					state = PBS_HOT;
 				}
