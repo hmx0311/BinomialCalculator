@@ -4,6 +4,8 @@
 
 extern HTHEME hButtonTheme;
 
+LRESULT CALLBACK buttonSubclassProc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+
 class Button
 {
 private:
@@ -18,7 +20,6 @@ protected:
 public:
 	void attach(HWND hButton);
 	LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
-	void drawItem(HDC hDC, UINT itemState, RECT& rcItem);
 	HWND getHwnd();
 	void setIcon(HICON hIcon);
 	void setBkgBrush(HBRUSH hBkgBrush);

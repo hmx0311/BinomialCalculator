@@ -24,7 +24,7 @@ void NumericEdit::attach(HWND hEdit)
 	INITCOMMONCONTROLSEX icex = { sizeof(icex),ICC_STANDARD_CLASSES };
 	InitCommonControlsEx(&icex);
 	HWND hClearButton = CreateWindow(_T("Button"), nullptr,
-		WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | BS_FLAT,
+		WS_CHILD | WS_VISIBLE | BS_FLAT,
 		0,0,0,0,
 		hEdit, (HMENU)IDC_CLEAR_BUTTON, hInst, nullptr);
 	clearButton.attach(hClearButton);
@@ -38,17 +38,6 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
-	case WM_DRAWITEM:
-		{
-			PDRAWITEMSTRUCT pDrawItemStruct = (PDRAWITEMSTRUCT)lParam;
-			HDC hDC = pDrawItemStruct->hDC;
-			if (BufferedPaintRenderAnimation(pDrawItemStruct->hwndItem, hDC))
-			{
-				return (INT_PTR)TRUE;
-			}
-			((Button*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
-			return (INT_PTR)TRUE;
-		}
 	case WM_DPICHANGED_AFTERPARENT:
 		initLayout();
 		break;
@@ -99,7 +88,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		if (wParam == VK_RETURN)
 		{
 			updateStr();
-			return (INT_PTR)TRUE;
+			break;
 		}
 		break;
 	case WM_KILLFOCUS:

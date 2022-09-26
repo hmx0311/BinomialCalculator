@@ -41,7 +41,6 @@ HWND hNumTrialsSpin;
 NumericEdit numSuccessEdit;
 HWND hNumSuccessSpin;
 HWND hResultText;
-Button calculateButton;
 Button clearHistoryResultButton;
 ResultList historyResultListBox;
 
@@ -108,15 +107,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		case WM_KEYDOWN:
 			switch (msg.wParam)
 			{
-			case VK_RETURN:
-				switch (GetDlgCtrlID(GetFocus()))
-				{
-				case IDC_SUCCESS_PROBABILITY_EDIT:
-					updateSuccessProbability();
-					break;
-				}
-				calcProbability();
-				break;
 			case VK_ESCAPE:
 				continue;
 			}
@@ -147,7 +137,6 @@ BOOL initDlg(HWND hDlg)
 	logFont.lfHeight = LARGE_FONT_HEIGHT;
 	hLargeFont = CreateFontIndirect(&logFont);
 
-	hButtonTheme = OpenThemeData(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON), _T("Button"));
 
 	successProbabilityEdit.attach(GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT));
 	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT));
@@ -156,9 +145,13 @@ BOOL initDlg(HWND hDlg)
 	hNumSuccessSpin = GetDlgItem(hDlg, IDC_NUM_SUCCESS_SPIN);
 	hResultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
 	SetWindowSubclass(hResultText, readOnlyEditSubclassProc, 0, 0);
-	calculateButton.attach(GetDlgItem(hDlg, IDC_CALCULATE_BUTTON));
+	HWND hCalculateButton = GetDlgItem(hDlg, IDC_CALCULATE_BUTTON);
+	SendMessage(hCalculateButton, WM_UPDATEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS), 0);
+	SetWindowSubclass(hCalculateButton, buttonSubclassProc, 0, 0);
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
+
+	hButtonTheme = OpenThemeData(hCalculateButton, _T("Button"));
 
 	clearHistoryResultButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_BIN), IMAGE_ICON, 0, 0, LR_SHARED));
 
@@ -245,7 +238,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	case WM_THEMECHANGED:
 		CloseThemeData(hButtonTheme);
-		hButtonTheme = OpenThemeData(calculateButton.getHwnd(), _T("Button"));
+		hButtonTheme = OpenThemeData(clearHistoryResultButton.getHwnd(), _T("Button"));
 		InvalidateRect(hDlg, nullptr, TRUE);
 		return (INT_PTR)TRUE;
 	case WM_CTLCOLORSTATIC:
@@ -260,15 +253,8 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			PDRAWITEMSTRUCT pDrawItemStruct = (PDRAWITEMSTRUCT)lParam;
 			HDC hDC = pDrawItemStruct->hDC;
-			if (BufferedPaintRenderAnimation(pDrawItemStruct->hwndItem, hDC))
-			{
-				return (INT_PTR)TRUE;
-			}
 			switch (pDrawItemStruct->CtlType)
 			{
-			case ODT_BUTTON:
-				((Button*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
-				return (INT_PTR)TRUE;
 			case ODT_LISTBOX:
 				((ResultList*)GetWindowLongPtr(pDrawItemStruct->hwndItem, GWLP_USERDATA))->drawItem(hDC, pDrawItemStruct->itemID, pDrawItemStruct->itemState, pDrawItemStruct->rcItem);
 				return (INT_PTR)TRUE;

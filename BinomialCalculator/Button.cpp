@@ -8,13 +8,22 @@
 #define BUTTON_ANIMATION_DURATION_LONG  200
 
 #define BUTTON_MARGIN_RATIO 0.08f
-#define PRESSED_SQUEEZE 0.0625f
+#define PRESSED_SQUEEZE 0.03125f
 
 HTHEME hButtonTheme;
 
-static LRESULT CALLBACK buttonSubclassProc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+LRESULT CALLBACK buttonSubclassProc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	return ((Button*)GetWindowLongPtr(hButton, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
+	Button* button = (Button*)GetWindowLongPtr(hButton, GWLP_USERDATA);
+	if (button != nullptr)
+	{
+		return button->wndProc(msg, wParam, lParam);
+	}
+	if (msg == WM_UPDATEUISTATE)
+	{
+		wParam &= ~MAKELONG(0, UISF_HIDEFOCUS | UISF_ACTIVE);
+	}
+	return DefSubclassProc(hButton, msg, wParam, lParam);
 }
 
 void Button::attach(HWND hButton)
@@ -33,6 +42,48 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_MOVE:
 		BufferedPaintStopAllAnimations(hButton);
 		break;
+	case WM_PAINT:
+		{
+			PAINTSTRUCT paintStruct;
+			HDC hDC = BeginPaint(hButton, &paintStruct);
+			if (!BufferedPaintRenderAnimation(hButton, hDC))
+			{
+				RECT rcItem;
+				GetClientRect(hButton, &rcItem);
+				PUSHBUTTONSTATES state = PBS_NORMAL;
+				if (Button_GetState(hButton) & BST_PUSHED)
+				{
+					state = PBS_PRESSED;
+				}
+				else if (isTracking)
+				{
+					state = PBS_HOT;
+				}
+				if (lastState == state || hButtonTheme == nullptr)
+				{
+					HDC hDCMem;
+					HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hDCMem);
+					drawButton(hDCMem, state, rcItem);
+					EndBufferedPaint(hPaintBuffer, TRUE);
+				}
+				else
+				{
+					BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
+					HDC hDCFrom, hDCTo;
+					HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, NULL, &animParams, &hDCFrom, &hDCTo);
+					if (hDCFrom != nullptr)
+					{
+						drawButton(hDCFrom, lastState, rcItem);
+					}
+					drawButton(hDCTo, state, rcItem);
+					BufferedPaintStopAllAnimations(hButton);
+					EndBufferedAnimation(hbpAnimation, TRUE);
+					lastState = state;
+				}
+			}
+			EndPaint(hButton, &paintStruct);
+			return LRESULT(TRUE);
+		}
 	case WM_MOUSEMOVE:
 		{
 			if (isTracking)
@@ -56,38 +107,6 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		return LRESULT(TRUE);
 	}
 	return DefSubclassProc(hButton, msg, wParam, lParam);
-}
-
-void Button::drawItem(HDC hDC, UINT itemState, RECT& rcItem)
-{
-	PUSHBUTTONSTATES state = PBS_NORMAL;
-	if (itemState & ODS_SELECTED)
-	{
-		state = PBS_PRESSED;
-	}
-	else if (isTracking)
-	{
-		state = PBS_HOT;
-	}
-	if (lastState == state || hButtonTheme == nullptr)
-	{
-		HDC hDCMem;
-		HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hDCMem);
-		drawButton(hDCMem, state, rcItem);
-		EndBufferedPaint(hPaintBuffer, TRUE);
-		return;
-	}
-	BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
-	HDC hDCFrom, hDCTo;
-	HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, NULL, &animParams, &hDCFrom, &hDCTo);
-	if (hDCFrom != nullptr)
-	{
-		drawButton(hDCFrom, lastState, rcItem);
-	}
-	drawButton(hDCTo, state, rcItem);
-	BufferedPaintStopAllAnimations(hButton);
-	EndBufferedAnimation(hbpAnimation, TRUE);
-	lastState = state;
 }
 
 HWND Button::getHwnd()
@@ -166,8 +185,8 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 		int xSqueeze = 0, ySqueeze = 0;
 		if (state == PBS_PRESSED && (hButtonTheme != nullptr || GetWindowStyle(hButton) & BS_FLAT))
 		{
-			xSqueeze = PRESSED_SQUEEZE * iconWidth;
-			ySqueeze = PRESSED_SQUEEZE * iconHeight;
+			xSqueeze = PRESSED_SQUEEZE * iconWidth + 1;
+			ySqueeze = PRESSED_SQUEEZE * iconHeight + 1;
 		}
 		HBITMAP hBmBuffer = CreateCompatibleBitmap(hDC, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze);
 		SelectObject(hDCImage, hBmBuffer);
