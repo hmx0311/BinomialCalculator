@@ -55,7 +55,7 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				{
 					state = PBS_PRESSED;
 				}
-				else if (isTracking)
+				else if (Button_GetState(hButton) & BST_HOT)
 				{
 					state = PBS_HOT;
 				}
@@ -84,27 +84,6 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			EndPaint(hButton, &paintStruct);
 			return LRESULT(TRUE);
 		}
-	case WM_MOUSEMOVE:
-		{
-			if (isTracking)
-			{
-				break;
-			}
-			isTracking = true;
-			TRACKMOUSEEVENT eventTrack = { sizeof(TRACKMOUSEEVENT),TME_LEAVE,hButton ,0 };
-			TrackMouseEvent(&eventTrack);
-			InvalidateRect(hButton, nullptr, FALSE);
-			break;
-		}
-	case WM_MOUSELEAVE:
-		{
-			isTracking = false;
-			InvalidateRect(hButton, nullptr, FALSE);
-			break;
-		}
-	case WM_LBUTTONDBLCLK:
-		SendMessage(hButton, WM_LBUTTONDOWN, wParam, lParam);
-		return LRESULT(TRUE);
 	}
 	return DefSubclassProc(hButton, msg, wParam, lParam);
 }

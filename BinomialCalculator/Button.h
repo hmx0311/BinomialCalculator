@@ -16,7 +16,6 @@ protected:
 	int iconWidth;
 	int iconHeight;
 	HBRUSH hBkgBrush = GetSysColorBrush(COLOR_BTNFACE);
-	bool isTracking = false;
 public:
 	void attach(HWND hButton);
 	LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
