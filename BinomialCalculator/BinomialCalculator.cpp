@@ -83,7 +83,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		return FALSE;
 	}
 
-	if (swscanf(lpCmdLine, _T("bet_probability_calculator "
+	if (_stscanf(lpCmdLine, _T("bet_probability_calculator "
 		"HWND=%p "
 		"connect_message=%d "
 		"disconnect_message=%d "
@@ -95,6 +95,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	{
 		PostMessage(hBet, BPC_CONNECTED, (WPARAM)hMainDlg, 0);
 		SetWindowText(hMainDlg, _T("bet - 二项分布计算器"));
+	}
+	else
+	{
+		hBet = nullptr;
 	}
 
 	MSG msg;
@@ -167,12 +171,12 @@ BOOL initDlg(HWND hDlg)
 	// Create the tooltip. hInst is the global instance handle.
 	INITCOMMONCONTROLSEX icex = { sizeof(icex),ICC_TREEVIEW_CLASSES };
 	InitCommonControlsEx(&icex);
-	HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL,
+	HWND hwndTip = CreateWindow(TOOLTIPS_CLASS, nullptr,
 		WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		hDlg, NULL,
-		hInst, NULL);
+		hDlg, nullptr,
+		hInst, nullptr);
 
 	TCHAR pszText[] = _T("清除历史记录");
 
@@ -392,7 +396,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_CLOSE:
-		if (hBet != NULL)
+		if (hBet != nullptr)
 		{
 			PostMessage(hBet, BPC_DISCONNECT, (WPARAM)hMainDlg, 0);
 		}

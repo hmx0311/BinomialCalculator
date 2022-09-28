@@ -71,7 +71,7 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				{
 					BP_ANIMATIONPARAMS animParams = { sizeof(BP_ANIMATIONPARAMS),0, BPAS_LINEAR, state == PBS_PRESSED ? BUTTON_ANIMATION_DURATION_SHORT : BUTTON_ANIMATION_DURATION_LONG };
 					HDC hDCFrom, hDCTo;
-					HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, NULL, &animParams, &hDCFrom, &hDCTo);
+					HANIMATIONBUFFER hbpAnimation = BeginBufferedAnimation(hButton, hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &animParams, &hDCFrom, &hDCTo);
 					if (hDCFrom != nullptr)
 					{
 						drawButton(hDCFrom, lastState, rcItem);
