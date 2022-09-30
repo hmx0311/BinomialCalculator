@@ -43,6 +43,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_CONTEXTMENU:
 		{
+			SetFocus(hEdit);
 			RECT rect;
 			GetWindowRect(hEdit, &rect);
 			POINT pos = { lParam == -1 ? (rect.left + rect.right) / 2 : GET_X_LPARAM(lParam),lParam == -1 ? (rect.top + rect.bottom) / 2 : GET_Y_LPARAM(lParam) };
