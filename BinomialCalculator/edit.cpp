@@ -25,7 +25,7 @@ void NumericEdit::attach(HWND hEdit)
 	InitCommonControlsEx(&icex);
 	HWND hClearButton = CreateWindow(_T("Button"), nullptr,
 		WS_CHILD | WS_VISIBLE | BS_FLAT,
-		0,0,0,0,
+		0, 0, 0, 0,
 		hEdit, (HMENU)IDC_CLEAR_BUTTON, hInst, nullptr);
 	clearButton.attach(hClearButton);
 	clearButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_CLEAR), IMAGE_ICON, 0, 0, LR_SHARED));
@@ -50,8 +50,8 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			HMENU hMenu = CreatePopupMenu();
 			DWORD sel = Edit_GetSel(hEdit);
 			TCHAR temp[20];
-			GetWindowText(hEdit,temp, 20);
-			AppendMenu(hMenu, (curUndo.empty() || lstrcmp(temp, curUndo.c_str()) == 0 && lastUndo.empty()) ? MF_ENABLED : MF_GRAYED, 1, _T("³·Ïú(&U)"));
+			GetWindowText(hEdit, temp, 20);
+			AppendMenu(hMenu, (curUndo.empty() || lstrcmp(temp, curUndo.c_str()) == 0 && lastUndo.empty()) ? MF_GRAYED : MF_ENABLED, 1, _T("³·Ïú(&U)"));
 			AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
 			AppendMenu(hMenu, HIWORD(sel) == LOWORD(sel) ? MF_GRAYED : MF_ENABLED, 2, _T("¼ôÇÐ(&T)"));
 			AppendMenu(hMenu, HIWORD(sel) == LOWORD(sel) ? MF_GRAYED : MF_ENABLED, 3, _T("¸´ÖÆ(&C)"));
@@ -86,8 +86,9 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			return (LRESULT)TRUE;
 		}
 	case WM_KEYDOWN:
-		if (wParam == VK_RETURN)
+		switch(wParam)
 		{
+		case VK_RETURN:
 			updateStr();
 			break;
 		}
