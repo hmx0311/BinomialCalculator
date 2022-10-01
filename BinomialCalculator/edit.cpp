@@ -51,7 +51,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			DWORD sel = Edit_GetSel(hEdit);
 			TCHAR temp[20];
 			GetWindowText(hEdit, temp, 20);
-			AppendMenu(hMenu, (curUndo.empty() || lstrcmp(temp, curUndo.c_str()) == 0 && lastUndo.empty()) ? MF_GRAYED : MF_ENABLED, 1, _T("³·Ïú(&U)"));
+			AppendMenu(hMenu, curUndo.empty() || lstrcmp(temp, curUndo.c_str()) == 0 && lastUndo.empty() ? MF_GRAYED : MF_ENABLED, 1, _T("³·Ïú(&U)"));
 			AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
 			AppendMenu(hMenu, HIWORD(sel) == LOWORD(sel) ? MF_GRAYED : MF_ENABLED, 2, _T("¼ôÇÐ(&T)"));
 			AppendMenu(hMenu, HIWORD(sel) == LOWORD(sel) ? MF_GRAYED : MF_ENABLED, 3, _T("¸´ÖÆ(&C)"));
