@@ -12,7 +12,6 @@ private:
 	PUSHBUTTONSTATES lastState = PBS_NORMAL;
 protected:
 	HWND hButton;
-	HICON hIcon = nullptr;
 	int iconWidth;
 	int iconHeight;
 	HBRUSH hBkgBrush = GetSysColorBrush(COLOR_BTNFACE);

@@ -155,7 +155,7 @@ BOOL initDlg(HWND hDlg)
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
-	hButtonTheme = OpenThemeData(hCalculateButton, _T("Button"));
+	hButtonTheme = OpenThemeData(hDlg, _T("Button"));
 
 	clearHistoryResultButton.setIcon((HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_BIN), IMAGE_ICON, 0, 0, LR_SHARED));
 
@@ -242,7 +242,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	case WM_THEMECHANGED:
 		CloseThemeData(hButtonTheme);
-		hButtonTheme = OpenThemeData(clearHistoryResultButton.getHwnd(), _T("Button"));
+		hButtonTheme = OpenThemeData(hDlg, _T("Button"));
 		InvalidateRect(hDlg, nullptr, TRUE);
 		return (INT_PTR)TRUE;
 	case WM_CTLCOLORSTATIC:

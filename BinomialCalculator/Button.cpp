@@ -96,7 +96,7 @@ HWND Button::getHwnd()
 
 void Button::setIcon(HICON hIcon)
 {
-	this->hIcon = hIcon;
+	SendMessage(hButton, BM_SETIMAGE, IMAGE_ICON, (WPARAM)hIcon);
 	if (hIcon != nullptr)
 	{
 		ICONINFO iconInfo;
@@ -106,7 +106,6 @@ void Button::setIcon(HICON hIcon)
 		iconWidth = bmMask.bmWidth;
 		iconHeight = bmMask.bmHeight;
 	}
-	InvalidateRect(hButton, nullptr, FALSE);
 }
 
 void Button::setBkgBrush(HBRUSH hBkgBrush)
@@ -159,6 +158,7 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	rcContent.right -= padding;
 	rcContent.bottom -= padding;
 
+	HICON hIcon = (HICON)SendMessage(hButton, BM_GETIMAGE, IMAGE_ICON, 0);
 	if (hIcon != nullptr)
 	{
 		HDC hDCImage = CreateCompatibleDC(hDC);
