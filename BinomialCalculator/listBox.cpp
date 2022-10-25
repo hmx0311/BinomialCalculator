@@ -3,7 +3,6 @@
 
 #include "BinomialCalculator.h"
 
-#include <CommCtrl.h>
 #include <uxtheme.h>
 #include <windowsx.h>
 

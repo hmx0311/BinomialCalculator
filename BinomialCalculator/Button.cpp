@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "button.h"
 
-#include <CommCtrl.h>
 #include <windowsx.h>
 
 #define BUTTON_ANIMATION_DURATION_SHORT 150
@@ -85,6 +84,11 @@ LRESULT Button::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			EndPaint(hButton, &paintStruct);
 			return LRESULT(TRUE);
 		}
+	case WM_SETFOCUS:
+		SetFocus((HWND)wParam);
+		return LRESULT(TRUE);
+	case WM_KILLFOCUS:
+		return LRESULT(TRUE);
 	}
 	return DefSubclassProc(hButton, msg, wParam, lParam);
 }

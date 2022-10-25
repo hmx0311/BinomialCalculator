@@ -2,7 +2,6 @@
 #include "edit.h"
 #include "BinomialCalculator.h"
 
-#include <CommCtrl.h>
 #include <Windowsx.h>
 
 #define IDC_CLEAR_BUTTON 1000
@@ -89,6 +88,10 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		case VK_RETURN:
 			updateStr();
 			break;
+		case VK_ESCAPE:
+			SetWindowText(hEdit, curUndo.c_str());
+			Edit_SetSel(hEdit, curUndo.size(), -1);
+			return (LRESULT)TRUE;
 		}
 		break;
 	case WM_KILLFOCUS:

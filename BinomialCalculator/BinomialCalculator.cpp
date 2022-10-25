@@ -9,13 +9,10 @@
 
 #include "model.h"
 
-#include <CommCtrl.h>
 #include <windowsx.h>
 
 #pragma comment(lib,"comctl32.lib")
 #pragma comment(lib,"UxTheme.lib")
-
-#define MAX_LOADSTRING 100
 
 #define DISPLAYED_ITEM_COUNT 5
 #define LIST_ITEM_HEIGHT (1.36f * abs(logFont.lfHeight))
@@ -106,16 +103,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 主消息循环:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
-		switch (msg.message)
-		{
-		case WM_KEYDOWN:
-			switch (msg.wParam)
-			{
-			case VK_ESCAPE:
-				continue;
-			}
-			break;
-		}
 		if (!IsDialogMessage(hMainDlg, &msg))
 		{
 			TranslateMessage(&msg);
