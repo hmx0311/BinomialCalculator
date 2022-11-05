@@ -27,9 +27,7 @@ HFONT hLargeFont;
 HWND hMainDlg;
 NumericEdit successProbabilityEdit;
 NumSpinEdit numTrialsEdit;
-HWND hNumTrialsSpin;
 NumSpinEdit numSuccessEdit;
-HWND hNumSuccessSpin;
 HWND hResultText;
 Button clearHistoryResultButton;
 ResultList historyResultListBox;
@@ -119,10 +117,8 @@ BOOL initDlg(HWND hDlg)
 
 
 	successProbabilityEdit.attach(GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT));
-	hNumTrialsSpin = GetDlgItem(hDlg, IDC_NUM_TRIALS_SPIN);
-	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT), hNumTrialsSpin);
-	hNumSuccessSpin = GetDlgItem(hDlg, IDC_NUM_SUCCESS_SPIN);
-	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT), hNumSuccessSpin);
+	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT), GetDlgItem(hDlg, IDC_NUM_TRIALS_SPIN));
+	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT), GetDlgItem(hDlg, IDC_NUM_SUCCESS_SPIN));
 	hResultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
 	SetWindowSubclass(hResultText, readOnlyEditSubclassProc, 0, 0);
 	HWND hCalculateButton = GetDlgItem(hDlg, IDC_CALCULATE_BUTTON);

@@ -35,7 +35,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 	case WM_CHAR:
 	case WM_KEYDOWN:
-		return (LRESULT)TRUE;
+		return 0;
 	case WM_LBUTTONDBLCLK:
 		msg = WM_LBUTTONDOWN;
 		break;
@@ -43,7 +43,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			if (isEmpty)
 			{
-				return (LRESULT)TRUE;
+				return 0;
 			}
 			if (!isTracking)
 			{
@@ -56,7 +56,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			{
 				if (lastTrackItemID == -1)
 				{
-					return (LRESULT)TRUE;
+					return 0;
 				}
 				RECT rcItem;
 				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcItem);
@@ -92,7 +92,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				}
 				if (itemID == lastTrackItemID)
 				{
-					return (LRESULT)TRUE;
+					return 0;
 				}
 				HDC hDC = GetDC(hListBox);
 				if (lastTrackItemID != -1)
@@ -108,7 +108,7 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				ReleaseDC(hListBox, hDC);
 				lastTrackItemID = itemID;
 			}
-			return (LRESULT)TRUE;
+			return 0;
 		}
 	case WM_LBUTTONUP:
 		if (!isEmpty)

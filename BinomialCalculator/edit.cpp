@@ -84,7 +84,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 			DestroyMenu(hMenu);
-			return (LRESULT)TRUE;
+			return 0;
 		}
 	case WM_KEYDOWN:
 		switch (wParam)
@@ -96,7 +96,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			SetWindowText(hEdit, curUndo.c_str());
 			Edit_SetSel(hEdit, curUndo.size(), -1);
 			SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
-			return (LRESULT)TRUE;
+			return 0;
 		}
 		break;
 	case WM_KILLFOCUS:
@@ -105,7 +105,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case EM_SETSEL:
 		if (wParam == 0 && lParam == -1)
 		{
-			return (INT_PTR)TRUE;
+			return 0;
 		}
 		break;
 	case EM_UNDO:
@@ -115,13 +115,13 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			if (curUndo.empty())
 			{
 				curUndo = temp;
-				return (INT_PTR)TRUE;
+				return (LRESULT)TRUE;
 			}
 			if (lstrcmp(temp, curUndo.c_str()) == 0)
 			{
 				if (lastUndo.empty())
 				{
-					return (INT_PTR)TRUE;
+					return (LRESULT)TRUE;
 				}
 				lastUndo.swap(curUndo);
 			}
@@ -132,7 +132,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			SetWindowText(hEdit, curUndo.c_str());
 			Edit_SetSel(hEdit, curUndo.size(), -1);
 			SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
-			return (INT_PTR)TRUE;
+			return (LRESULT)TRUE;
 		}
 	case WM_PASTE:
 		{
@@ -142,7 +142,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			if (text == nullptr)
 			{
 				CloseClipboard();
-				return (INT_PTR)TRUE;
+				return 0;
 			}
 			for (; *text != '\0'; text++)
 			{
@@ -176,7 +176,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			CloseClipboard();
 			Edit_ReplaceSel(hEdit, str.c_str());
-			return (INT_PTR)TRUE;
+			return 0;
 		}
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
@@ -185,7 +185,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			setText(_T(""));
 			SetFocus(hEdit);
 			SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
-			return (LRESULT)TRUE;
+			return 0;
 		}
 		break;
 	}
