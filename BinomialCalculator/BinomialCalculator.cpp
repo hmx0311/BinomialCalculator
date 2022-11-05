@@ -18,13 +18,6 @@
 #define LIST_ITEM_HEIGHT (1.36f * abs(logFont.lfHeight))
 #define LARGE_FONT_HEIGHT (-1.2f * abs(logFont.lfHeight) - 2.5f)
 
-#define PROB_LEN 4
-#define NUM_LEN 8
-#define SPIN_LEN 4
-#define _STR(x) #x
-#define STR(x) _STR(x)
-#define MAX_DECIMAL(x) (int)(1e ## x-1)
-
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
 
@@ -33,9 +26,9 @@ HFONT hLargeFont;
 
 HWND hMainDlg;
 NumericEdit successProbabilityEdit;
-NumericEdit numTrialsEdit;
+NumSpinEdit numTrialsEdit;
 HWND hNumTrialsSpin;
-NumericEdit numSuccessEdit;
+NumSpinEdit numSuccessEdit;
 HWND hNumSuccessSpin;
 HWND hResultText;
 Button clearHistoryResultButton;
@@ -53,11 +46,7 @@ UINT BPC_PROBABILITY;
 // 此代码模块中包含的函数的前向声明:
 BOOL                initDlg(HWND);
 INT_PTR CALLBACK    dlgProc(HWND, UINT, WPARAM, LPARAM);
-void showEditSpin(HWND hSpin, HWND hEdit);
-void hideEditSpin(HWND hSpin, HWND hEdit);
 void updateSuccessProbability();
-void updateNumTrials();
-void updateNumSuccess();
 void calcProbability();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -130,10 +119,10 @@ BOOL initDlg(HWND hDlg)
 
 
 	successProbabilityEdit.attach(GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT));
-	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT));
 	hNumTrialsSpin = GetDlgItem(hDlg, IDC_NUM_TRIALS_SPIN);
-	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT));
+	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT), hNumTrialsSpin);
 	hNumSuccessSpin = GetDlgItem(hDlg, IDC_NUM_SUCCESS_SPIN);
+	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT), hNumSuccessSpin);
 	hResultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
 	SetWindowSubclass(hResultText, readOnlyEditSubclassProc, 0, 0);
 	HWND hCalculateButton = GetDlgItem(hDlg, IDC_CALCULATE_BUTTON);
@@ -149,11 +138,6 @@ BOOL initDlg(HWND hDlg)
 	Edit_LimitText(successProbabilityEdit.getHwnd(), PROB_LEN);
 	Edit_LimitText(numTrialsEdit.getHwnd(), NUM_LEN);
 	Edit_LimitText(numSuccessEdit.getHwnd(), NUM_LEN);
-
-	showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
-	SendMessage(hNumTrialsSpin, UDM_SETBUDDY, (WPARAM)numTrialsEdit.getHwnd(), 0);
-	showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
-	SendMessage(hNumSuccessSpin, UDM_SETBUDDY, (WPARAM)numSuccessEdit.getHwnd(), 0);
 
 	// Create the tooltip. hInst is the global instance handle.
 	INITCOMMONCONTROLSEX icex = { sizeof(icex),ICC_TREEVIEW_CLASSES };
@@ -206,15 +190,6 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			GetWindowRect(historyResultListBox.getHwnd(), &rcList);
 			MapWindowRect(HWND_DESKTOP, hDlg, &rcList);
 			SetWindowPos(historyResultListBox.getHwnd(), nullptr, 0, 0, rcList.right - rcList.left, listHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
-
-			if (IsWindowVisible(hNumTrialsSpin))
-			{
-				showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
-			}
-			if (IsWindowVisible(hNumSuccessSpin))
-			{
-				showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
-			}
 
 			RECT rcDlg;
 			GetWindowRect(hDlg, &rcDlg);
@@ -272,9 +247,9 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				successProbabilityEdit.setText(successProbabilityStr);
 				updateSuccessProbability();
 				numTrialsEdit.setText(numTrialsStr);
-				updateNumTrials();
+				numTrials = numTrialsEdit.updateNum();
 				numSuccessEdit.setText(numSuccessStr);
-				updateNumSuccess();
+				numSuccess = numSuccessEdit.updateNum();
 				double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
 				if (hBet != nullptr)
 				{
@@ -301,7 +276,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			switch (HIWORD(wParam))
 			{
 			case EN_CHANGE:
-				updateNumTrials();
+				numTrials = numTrialsEdit.updateNum();
 				SetWindowText(hResultText, _T(""));
 				return (INT_PTR)TRUE;
 			}
@@ -310,7 +285,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			switch (HIWORD(wParam))
 			{
 			case EN_CHANGE:
-				updateNumSuccess();
+				numSuccess = numSuccessEdit.updateNum();
 				SetWindowText(hResultText, _T(""));
 				return (INT_PTR)TRUE;
 			}
@@ -337,20 +312,13 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					numTrials = MAX_DECIMAL(NUM_LEN);
 				}
-				if (numTrials > MAX_DECIMAL(SPIN_LEN))
-				{
-					hideEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
-				}
-				else if (!IsWindowVisible(hNumTrialsSpin))
-				{
-					showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
-				}
 				SetWindowText(hResultText, _T(""));
 				TCHAR str[NUM_LEN + 1];
 				_itow(numTrials, str, 10);
 				SetWindowText(numTrialsEdit.getHwnd(), str);
 				Edit_SetSel(numTrialsEdit.getHwnd(), lstrlen(str), -1);
 				SetFocus(numTrialsEdit.getHwnd());
+				numTrialsEdit.updateSpin();
 				break;
 			}
 		case IDC_NUM_SUCCESS_SPIN:
@@ -364,20 +332,13 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					numSuccess = MAX_DECIMAL(NUM_LEN);
 				}
-				if (numSuccess > MAX_DECIMAL(SPIN_LEN))
-				{
-					hideEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
-				}
-				else
-				{
-					showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
-				}
 				SetWindowText(hResultText, _T(""));
 				TCHAR str[NUM_LEN + 1];
 				_itow(numSuccess, str, 10);
 				SetWindowText(numSuccessEdit.getHwnd(), str);
 				Edit_SetSel(numSuccessEdit.getHwnd(), lstrlen(str), -1);
 				SetFocus(numSuccessEdit.getHwnd());
+				numSuccessEdit.updateSpin();
 				break;
 			}
 		}
@@ -394,23 +355,6 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-void hideEditSpin(HWND hSpin, HWND hEdit)
-{
-	SetWindowPos(hSpin, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_HIDEWINDOW);
-}
-
-void showEditSpin(HWND hSpin, HWND hEdit)
-{
-	RECT rcSpin, rcEdit;
-	GetWindowRect(hSpin, &rcSpin);
-	GetWindowRect(hEdit, &rcEdit);
-	MapWindowRect(HWND_DESKTOP, hMainDlg, &rcEdit);
-	SetWindowPos(hSpin, nullptr,
-		rcEdit.right - (rcSpin.right - rcSpin.left) - (rcEdit.bottom - rcEdit.top), rcEdit.top,
-		rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 2,
-		SWP_NOZORDER | SWP_SHOWWINDOW);
-}
-
 void updateSuccessProbability()
 {
 	TCHAR str[PROB_LEN + 1];
@@ -420,36 +364,6 @@ void updateSuccessProbability()
 	{
 		int c = str[i] - '0';
 		successProbability = (successProbability + c) * 0.1;
-	}
-}
-
-void updateNumTrials()
-{
-	TCHAR str[NUM_LEN + 1];
-	GetWindowText(numTrialsEdit.getHwnd(), str, NUM_LEN + 1);
-	numTrials = _wtoi(str);
-	if (lstrlen(str) > SPIN_LEN)
-	{
-		hideEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
-	}
-	else if (!IsWindowVisible(hNumTrialsSpin))
-	{
-		showEditSpin(hNumTrialsSpin, numTrialsEdit.getHwnd());
-	}
-}
-
-void updateNumSuccess()
-{
-	TCHAR str[NUM_LEN + 1];
-	GetWindowText(numSuccessEdit.getHwnd(), str, NUM_LEN + 1);
-	numSuccess = _wtoi(str);
-	if (lstrlen(str) > SPIN_LEN)
-	{
-		hideEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
-	}
-	else if (!IsWindowVisible(hNumSuccessSpin))
-	{
-		showEditSpin(hNumSuccessSpin, numSuccessEdit.getHwnd());
 	}
 }
 

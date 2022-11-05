@@ -6,6 +6,10 @@
 
 #define IDC_CLEAR_BUTTON 1000
 
+#define NUM_SHOW_SPIN_FRAMES 10
+#define SHOW_SPIN_ANIMAATION_DURATION 250
+#define ID_FRAME_TIMER 1
+
 using namespace std;
 
 static LRESULT CALLBACK editSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -91,11 +95,11 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		case VK_ESCAPE:
 			SetWindowText(hEdit, curUndo.c_str());
 			Edit_SetSel(hEdit, curUndo.size(), -1);
+			SendMessage(GetParent(hEdit), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hEdit), EN_CHANGE), 0);
 			return (LRESULT)TRUE;
 		}
 		break;
 	case WM_KILLFOCUS:
-		SendMessage(hEdit, WM_KEYUP, VK_UP, MAKELONG(1, KF_UP | KF_REPEAT | KF_EXTENDED));
 		updateStr();
 		break;
 	case EM_SETSEL:
@@ -232,6 +236,104 @@ void NumericEdit::updateStr()
 	}
 	lastUndo = curUndo;
 	curUndo = temp;
+}
+
+
+
+void NumSpinEdit::attach(HWND hEdit, HWND hSpin)
+{
+	this->hSpin = hSpin;
+	NumericEdit::attach(hEdit);
+	hMsgWnd = CreateWindow(_T("Message"), nullptr, NULL, 0, 0, 0, 0, HWND_MESSAGE, NULL, hInst, NULL);
+	SendMessage(hSpin, UDM_SETBUDDY, (WPARAM)hMsgWnd, 0);
+}
+
+LRESULT NumSpinEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case WM_TIMER:
+		switch (wParam)
+		{
+		case ID_FRAME_TIMER:
+			updateSpin();
+			return 0;
+		}
+		break;
+	case WM_MOUSEWHEEL:
+		SendMessage(hMsgWnd, msg, wParam, lParam);
+		break;
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+		switch (wParam)
+		{
+		case VK_UP:
+		case VK_DOWN:
+			SendMessage(hMsgWnd, msg, wParam, lParam);
+			break;
+		}
+		break;
+	case WM_KILLFOCUS:
+		SendMessage(hMsgWnd, WM_KEYUP, VK_UP, MAKELONG(1, KF_UP | KF_REPEAT | KF_EXTENDED));
+		break;
+	}
+	return NumericEdit::wndProc(msg, wParam, lParam);
+}
+
+int NumSpinEdit::updateNum()
+{
+	updateSpin();
+	TCHAR str[NUM_LEN + 1];
+	GetWindowText(hEdit, str, NUM_LEN + 1);
+	return _wtoi(str);
+}
+
+void NumSpinEdit::updateSpin()
+{
+	if (GetWindowTextLength(hEdit) > SPIN_LEN)
+	{
+		if (curShowSpinFrame == NUM_SHOW_SPIN_FRAMES)
+		{
+			KillTimer(hEdit, ID_FRAME_TIMER);
+			return;
+		}
+		curShowSpinFrame++;
+	}
+	else
+	{
+		if (curShowSpinFrame == 0)
+		{
+			KillTimer(hEdit, ID_FRAME_TIMER);
+			return;
+		}
+		curShowSpinFrame--;
+	}
+	RECT rcSpin;
+	GetWindowRect(hSpin, &rcSpin);
+	SetWindowRgn(hSpin, CreateRectRgn(
+		(float)curShowSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left),
+		0,
+		rcSpin.right - rcSpin.left,
+		rcSpin.bottom - rcSpin.top),
+		TRUE);
+	if (0 < curShowSpinFrame && curShowSpinFrame < NUM_SHOW_SPIN_FRAMES)
+	{
+		SetTimer(hEdit, ID_FRAME_TIMER, SHOW_SPIN_ANIMAATION_DURATION / NUM_SHOW_SPIN_FRAMES, nullptr);
+	}
+	else
+	{
+		KillTimer(hEdit, ID_FRAME_TIMER);
+	}
+}
+
+void NumSpinEdit::initLayout()
+{
+	NumericEdit::initLayout();
+	RECT rcSpin, rcEdit;
+	GetWindowRect(hSpin, &rcSpin);
+	GetWindowRect(hEdit, &rcEdit);
+	MapWindowRect(HWND_DESKTOP, GetParent(hSpin), &rcEdit);
+	SetWindowPos(hSpin, nullptr, 0, 0, rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 2, SWP_NOMOVE | SWP_NOZORDER);
 }
 
 
