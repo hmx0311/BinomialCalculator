@@ -6,9 +6,9 @@
 
 #define IDC_CLEAR_BUTTON 1000
 
-#define NUM_SHOW_SPIN_FRAMES 10
-#define SHOW_SPIN_ANIMAATION_DURATION 250
-#define ID_FRAME_TIMER 1
+#define NUM_SHOW_SPIN_FRAMES 11
+#define SHOW_SPIN_FRAME_INTERVAL 17
+#define IDT_FRAME_TIMER 1
 
 using namespace std;
 
@@ -255,7 +255,7 @@ LRESULT NumSpinEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		switch (wParam)
 		{
-		case ID_FRAME_TIMER:
+		case IDT_FRAME_TIMER:
 			updateSpin();
 			return 0;
 		}
@@ -294,7 +294,7 @@ void NumSpinEdit::updateSpin()
 	{
 		if (curShowSpinFrame == NUM_SHOW_SPIN_FRAMES)
 		{
-			KillTimer(hEdit, ID_FRAME_TIMER);
+			KillTimer(hEdit, IDT_FRAME_TIMER);
 			return;
 		}
 		curShowSpinFrame++;
@@ -303,7 +303,7 @@ void NumSpinEdit::updateSpin()
 	{
 		if (curShowSpinFrame == 0)
 		{
-			KillTimer(hEdit, ID_FRAME_TIMER);
+			KillTimer(hEdit, IDT_FRAME_TIMER);
 			return;
 		}
 		curShowSpinFrame--;
@@ -318,11 +318,11 @@ void NumSpinEdit::updateSpin()
 		TRUE);
 	if (0 < curShowSpinFrame && curShowSpinFrame < NUM_SHOW_SPIN_FRAMES)
 	{
-		SetTimer(hEdit, ID_FRAME_TIMER, SHOW_SPIN_ANIMAATION_DURATION / NUM_SHOW_SPIN_FRAMES, nullptr);
+		SetTimer(hEdit, IDT_FRAME_TIMER, SHOW_SPIN_FRAME_INTERVAL, nullptr);
 	}
 	else
 	{
-		KillTimer(hEdit, ID_FRAME_TIMER);
+		KillTimer(hEdit, IDT_FRAME_TIMER);
 	}
 }
 
