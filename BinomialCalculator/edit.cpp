@@ -296,12 +296,9 @@ void NumSpinEdit::updateSpin()
 void NumSpinEdit::initLayout()
 {
 	NumericEdit::initLayout();
-	RECT rcSpin, rcEdit;
+	RECT rcSpin;
 	GetWindowRect(hSpin, &rcSpin);
-	GetWindowRect(hEdit, &rcEdit);
-	MapWindowRect(HWND_DESKTOP, GetParent(hSpin), &rcEdit);
-	SetWindowPos(hSpin, nullptr, 0, 0, rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 1, SWP_NOMOVE | SWP_NOZORDER);
-	SetWindowRgn(hSpin, CreateRectRgn(0, 0, rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 2), TRUE);
+	SetWindowRgn(hSpin, CreateRectRgn(1, 1, rcSpin.right - rcSpin.left - 1, rcSpin.bottom - rcSpin.top - 1), TRUE);
 }
 
 void NumSpinEdit::drawSpinFrame()
@@ -317,9 +314,9 @@ void NumSpinEdit::drawSpinFrame()
 	RECT rcSpin;
 	GetWindowRect(hSpin, &rcSpin);
 	SetWindowRgn(hSpin, CreateRectRgn(
-		(float)curSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left),
-		0,
-		rcSpin.right - rcSpin.left,
+		lroundf((float)curSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left - 2) + 1),
+		1,
+		rcSpin.right - rcSpin.left - 1,
 		rcSpin.bottom - rcSpin.top - 1),
 		TRUE);
 	if (curSpinFrame == 0 || curSpinFrame == NUM_SHOW_SPIN_FRAMES)
