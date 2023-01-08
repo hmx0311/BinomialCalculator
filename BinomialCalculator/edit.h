@@ -28,7 +28,7 @@ class NumSpinEdit
 private:
 	HWND hSpin;
 	HWND hMsgWnd;
-	int curShowSpinFrame = 0;
+	int curSpinFrame = 0;
 public:
 	void attach(HWND hEdit, HWND hSpin);
 	virtual LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);
@@ -36,6 +36,7 @@ public:
 	void updateSpin();
 private:
 	virtual void initLayout();
+	void drawSpinFrame();
 };
 
 LRESULT CALLBACK readOnlyEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);

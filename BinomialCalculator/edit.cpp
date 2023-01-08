@@ -102,12 +102,6 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_KILLFOCUS:
 		updateStr();
 		break;
-	case EM_SETSEL:
-		if (wParam == 0 && lParam == -1)
-		{
-			return 0;
-		}
-		break;
 	case EM_UNDO:
 		{
 			TCHAR temp[10];
@@ -256,7 +250,7 @@ LRESULT NumSpinEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		switch (wParam)
 		{
 		case IDT_FRAME_TIMER:
-			updateSpin();
+			drawSpinFrame();
 			return 0;
 		}
 		break;
@@ -290,40 +284,13 @@ int NumSpinEdit::updateNum()
 
 void NumSpinEdit::updateSpin()
 {
-	if (GetWindowTextLength(hEdit) > SPIN_LEN)
+	if ((GetWindowTextLength(hEdit) > MAX_SPIN_LEN) == (curSpinFrame == NUM_SHOW_SPIN_FRAMES))
 	{
-		if (curShowSpinFrame == NUM_SHOW_SPIN_FRAMES)
-		{
-			KillTimer(hEdit, IDT_FRAME_TIMER);
-			return;
-		}
-		curShowSpinFrame++;
+		return;
 	}
-	else
-	{
-		if (curShowSpinFrame == 0)
-		{
-			KillTimer(hEdit, IDT_FRAME_TIMER);
-			return;
-		}
-		curShowSpinFrame--;
-	}
-	RECT rcSpin;
-	GetWindowRect(hSpin, &rcSpin);
-	SetWindowRgn(hSpin, CreateRectRgn(
-		(float)curShowSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left),
-		0,
-		rcSpin.right - rcSpin.left,
-		rcSpin.bottom - rcSpin.top),
-		TRUE);
-	if (0 < curShowSpinFrame && curShowSpinFrame < NUM_SHOW_SPIN_FRAMES)
-	{
-		SetTimer(hEdit, IDT_FRAME_TIMER, SHOW_SPIN_FRAME_INTERVAL, nullptr);
-	}
-	else
-	{
-		KillTimer(hEdit, IDT_FRAME_TIMER);
-	}
+	SendMessage(hSpin, WM_LBUTTONUP, 0, 0);
+	SetTimer(hEdit, IDT_FRAME_TIMER, SHOW_SPIN_FRAME_INTERVAL, nullptr);
+	drawSpinFrame();
 }
 
 void NumSpinEdit::initLayout()
@@ -333,7 +300,32 @@ void NumSpinEdit::initLayout()
 	GetWindowRect(hSpin, &rcSpin);
 	GetWindowRect(hEdit, &rcEdit);
 	MapWindowRect(HWND_DESKTOP, GetParent(hSpin), &rcEdit);
-	SetWindowPos(hSpin, nullptr, 0, 0, rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 2, SWP_NOMOVE | SWP_NOZORDER);
+	SetWindowPos(hSpin, nullptr, 0, 0, rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 1, SWP_NOMOVE | SWP_NOZORDER);
+	SetWindowRgn(hSpin, CreateRectRgn(0, 0, rcSpin.right - rcSpin.left, rcEdit.bottom - rcEdit.top - 2), TRUE);
+}
+
+void NumSpinEdit::drawSpinFrame()
+{
+	if (GetWindowTextLength(hEdit) > MAX_SPIN_LEN)
+	{
+		curSpinFrame++;
+	}
+	else
+	{
+		curSpinFrame--;
+	}
+	RECT rcSpin;
+	GetWindowRect(hSpin, &rcSpin);
+	SetWindowRgn(hSpin, CreateRectRgn(
+		(float)curSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left),
+		0,
+		rcSpin.right - rcSpin.left,
+		rcSpin.bottom - rcSpin.top - 1),
+		TRUE);
+	if (curSpinFrame == 0 || curSpinFrame == NUM_SHOW_SPIN_FRAMES)
+	{
+		KillTimer(hEdit, IDT_FRAME_TIMER);
+	}
 }
 
 
