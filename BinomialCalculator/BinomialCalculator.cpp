@@ -13,10 +13,11 @@
 
 #pragma comment(lib,"comctl32.lib")
 #pragma comment(lib,"UxTheme.lib")
+#pragma comment(lib,"imm32.lib")
 
 #define DISPLAYED_ITEM_COUNT 5
 #define LIST_ITEM_HEIGHT (1.36f * abs(logFont.lfHeight))
-#define LARGE_FONT_HEIGHT (-1.2f * abs(logFont.lfHeight) - 2.5f)
+#define LARGE_FONT_HEIGHT (-1.42f * abs(logFont.lfHeight))
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
@@ -28,7 +29,8 @@ HWND hMainDlg;
 NumericEdit successProbabilityEdit;
 NumSpinEdit numTrialsEdit;
 NumSpinEdit numSuccessEdit;
-HWND hResultText;
+HWND hResultText[2];
+HWND hErrorText;
 Button clearHistoryResultButton;
 ResultList historyResultListBox;
 
@@ -59,6 +61,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 执行应用程序初始化:
 	SetProcessDPIAware();
 	BufferedPaintInit();
+	ImmDisableIME(GetCurrentThreadId());
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
 	CreateDialog(hInst, MAKEINTRESOURCE(IDD_BINOMIALCALCULATOR_DIALOG), NULL, dlgProc);
@@ -115,12 +118,16 @@ BOOL initDlg(HWND hDlg)
 	logFont.lfHeight = LARGE_FONT_HEIGHT;
 	hLargeFont = CreateFontIndirect(&logFont);
 
-
 	successProbabilityEdit.attach(GetDlgItem(hDlg, IDC_SUCCESS_PROBABILITY_EDIT));
 	numTrialsEdit.attach(GetDlgItem(hDlg, IDC_NUM_TRIALS_EDIT), GetDlgItem(hDlg, IDC_NUM_TRIALS_SPIN));
 	numSuccessEdit.attach(GetDlgItem(hDlg, IDC_NUM_SUCCESS_EDIT), GetDlgItem(hDlg, IDC_NUM_SUCCESS_SPIN));
-	hResultText = GetDlgItem(hDlg, IDC_RESULT_TEXT);
-	SetWindowSubclass(hResultText, readOnlyEditSubclassProc, 0, 0);
+	hResultText[0] = GetDlgItem(hDlg, IDC_L_RESULT_TEXT);
+	SetWindowSubclass(hResultText[0], readOnlyEditSubclassProc, 0, 0);
+	SetWindowFont(hResultText[0], hLargeFont, FALSE);
+	hResultText[1] = GetDlgItem(hDlg, IDC_R_RESULT_TEXT);
+	SetWindowSubclass(hResultText[1], readOnlyEditSubclassProc, 0, 0);
+	SetWindowFont(hResultText[1], hLargeFont, FALSE);
+	hErrorText= GetDlgItem(hDlg, IDC_ERROR_TEXT);
 	HWND hCalculateButton = GetDlgItem(hDlg, IDC_CALCULATE_BUTTON);
 	SendMessage(hCalculateButton, WM_UPDATEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS), 0);
 	SetWindowSubclass(hCalculateButton, buttonSubclassProc, 0, 0);
@@ -192,10 +199,8 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			MapWindowRect(HWND_DESKTOP, hDlg, &rcDlg);
 			SetWindowPos(hDlg, nullptr, 0, 0, rcList.right + rcList.left - 2 * rcDlg.left, rcList.top + listHeight + rcList.left - rcDlg.top - rcDlg.left, SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW);
 
-			if (GetWindowStyle(hResultText) & SS_CENTER)
-			{
-				SetWindowFont(hResultText, hLargeFont, FALSE);
-			}
+			SetWindowFont(hResultText[0], hLargeFont, FALSE);
+			SetWindowFont(hResultText[1], hLargeFont, FALSE);
 			break;
 		}
 	case WM_THEMECHANGED:
@@ -204,7 +209,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		InvalidateRect(hDlg, nullptr, TRUE);
 		return (INT_PTR)TRUE;
 	case WM_CTLCOLORSTATIC:
-		if ((HWND)lParam == hResultText && !(GetWindowStyle(hResultText) & SS_CENTER))
+		if ((HWND)lParam == hErrorText)
 		{
 			SetBkColor((HDC)wParam, GetSysColor(COLOR_BTNFACE));
 			SetTextColor((HDC)wParam, RGB(255, 0, 0));
@@ -251,10 +256,13 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hMainDlg, *(LPARAM*)(&cumulativeProbability));
 				}
-				TCHAR str[2 * (PROB_LEN + 2) + 3];
-				_stprintf(str, _T("%." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"), cumulativeProbability, 1 - cumulativeProbability);
-				SetWindowFont(hResultText, hLargeFont, FALSE);
-				SetWindowText(hResultText, str);
+				TCHAR str[PROB_LEN + 3];
+				_stprintf(str, _T("%." STR(PROB_LEN) "f"), cumulativeProbability);
+				SetWindowText(hResultText[0], str);
+				ShowWindow(hResultText[0], SW_SHOW);
+				_stprintf(str, _T("%." STR(PROB_LEN) "f"), 1 - cumulativeProbability);
+				SetWindowText(hResultText[1], str);
+				ShowWindow(hResultText[1], SW_SHOW);
 				return (INT_PTR)TRUE;
 			}
 		case IDC_SUCCESS_PROBABILITY_EDIT:
@@ -264,7 +272,9 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				updateSuccessProbability();
 				return (INT_PTR)TRUE;
 			case EN_CHANGE:
-				SetWindowText(hResultText, _T(""));
+				ShowWindow(hResultText[0], SW_HIDE);
+				ShowWindow(hResultText[1], SW_HIDE);
+				ShowWindow(hErrorText, SW_HIDE);
 				return (INT_PTR)TRUE;
 			}
 			break;
@@ -273,7 +283,9 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 			case EN_CHANGE:
 				numTrials = numTrialsEdit.updateNum();
-				SetWindowText(hResultText, _T(""));
+				ShowWindow(hResultText[0], SW_HIDE);
+				ShowWindow(hResultText[1], SW_HIDE);
+				ShowWindow(hErrorText, SW_HIDE);
 				return (INT_PTR)TRUE;
 			}
 			break;
@@ -282,7 +294,9 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 			case EN_CHANGE:
 				numSuccess = numSuccessEdit.updateNum();
-				SetWindowText(hResultText, _T(""));
+				ShowWindow(hResultText[0], SW_HIDE);
+				ShowWindow(hResultText[1], SW_HIDE);
+				ShowWindow(hErrorText, SW_HIDE);
 				return (INT_PTR)TRUE;
 			}
 			break;
@@ -308,7 +322,9 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					numTrials = MAX_DECIMAL(NUM_LEN);
 				}
-				SetWindowText(hResultText, _T(""));
+				ShowWindow(hResultText[0], SW_HIDE);
+				ShowWindow(hResultText[1], SW_HIDE);
+				ShowWindow(hErrorText, SW_HIDE);
 				TCHAR str[NUM_LEN + 1];
 				_itow(numTrials, str, 10);
 				SetWindowText(numTrialsEdit.getHwnd(), str);
@@ -328,7 +344,9 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					numSuccess = MAX_DECIMAL(NUM_LEN);
 				}
-				SetWindowText(hResultText, _T(""));
+				ShowWindow(hResultText[0], SW_HIDE);
+				ShowWindow(hResultText[1], SW_HIDE);
+				ShowWindow(hErrorText, SW_HIDE);
 				TCHAR str[NUM_LEN + 1];
 				_itow(numSuccess, str, 10);
 				SetWindowText(numSuccessEdit.getHwnd(), str);
@@ -367,36 +385,32 @@ void calcProbability()
 {
 	if (successProbability == 0)
 	{
-		SetWindowFont(hResultText, hNormalFont, FALSE);
-		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
-		SetWindowText(hResultText, _T("成功概率不能为0"));
+		SetWindowText(hErrorText, _T("成功概率不能为0"));
+		ShowWindow(hErrorText, SW_SHOW);
 		SetFocus(successProbabilityEdit.getHwnd());
 		Edit_SetSel(successProbabilityEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	if (numTrials == 0)
 	{
-		SetWindowFont(hResultText, hNormalFont, FALSE);
-		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
-		SetWindowText(hResultText, _T("试验次数不能为0"));
+		SetWindowText(hErrorText, _T("试验次数不能为0"));
+		ShowWindow(hErrorText, SW_SHOW);
 		SetFocus(numTrialsEdit.getHwnd());
 		Edit_SetSel(numTrialsEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	if (numSuccess == 0)
 	{
-		SetWindowFont(hResultText, hNormalFont, FALSE);
-		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
-		SetWindowText(hResultText, _T("成功次数不能为0"));
+		SetWindowText(hErrorText, _T("成功次数不能为0"));
+		ShowWindow(hErrorText, SW_SHOW);
 		SetFocus(numSuccessEdit.getHwnd());
 		Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
 		return;
 	}
 	if (numSuccess > numTrials)
 	{
-		SetWindowFont(hResultText, hNormalFont, FALSE);
-		SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) & ~SS_CENTER);
-		SetWindowText(hResultText, _T("成功次数不能大于试验次数"));
+		SetWindowText(hErrorText, _T("成功次数不能大于试验次数"));
+		ShowWindow(hErrorText, SW_SHOW);
 		SetFocus(numSuccessEdit.getHwnd());
 		Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
 		return;
@@ -409,9 +423,11 @@ void calcProbability()
 	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
 		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
-	SetWindowLong(hResultText, GWL_STYLE, GetWindowStyle(hResultText) | SS_CENTER);
-	SetWindowFont(hResultText, hLargeFont, FALSE);
-	SetWindowText(hResultText, str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 	historyResultListBox.addResult(str);
+	str[2*(PROB_LEN + 2) + 2 * NUM_LEN + 4]='\0';
+	ShowWindow(hResultText[0], SW_SHOW);
+	SetWindowText(hResultText[0], str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
+	ShowWindow(hResultText[1], SW_SHOW);
+	SetWindowText(hResultText[1], str + (2*(PROB_LEN + 2) + 2 * NUM_LEN + 6));
 }
 

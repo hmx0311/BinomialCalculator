@@ -14,10 +14,12 @@
 #define IDC_NUM_TRIALS_SPIN             1002
 #define IDC_NUM_SUCCESS_EDIT            1003
 #define IDC_NUM_SUCCESS_SPIN            1004
-#define IDC_RESULT_TEXT                 1005
-#define IDC_CALCULATE_BUTTON            1006
-#define IDC_HISTORY_RESULT_LISTBOX      1007
-#define IDC_CLEAR_HISTORY_RESULT_BUTTON 1008
+#define IDC_L_RESULT_TEXT               1005
+#define IDC_R_RESULT_TEXT               1006
+#define IDC_ERROR_TEXT                  1007
+#define IDC_CALCULATE_BUTTON            1008
+#define IDC_HISTORY_RESULT_LISTBOX      1009
+#define IDC_CLEAR_HISTORY_RESULT_BUTTON 1010
 #define ID_RETRIEVE_RESULT              32771
 #define IDC_STATIC                      -1
 
@@ -28,7 +30,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1009
+#define _APS_NEXT_CONTROL_VALUE         1011
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

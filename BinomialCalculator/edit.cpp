@@ -137,13 +137,13 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_PASTE:
 		{
 			OpenClipboard(hEdit);
-			wstring str;
 			char* text = (char*)GetClipboardData(CF_TEXT);
 			if (text == nullptr)
 			{
 				CloseClipboard();
 				return 0;
 			}
+			wstring str;
 			for (; *text != '\0'; text++)
 			{
 				switch (*text)
@@ -164,7 +164,7 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 						}
 						str.clear();
 					}
-					if (isdigit(*text))
+					else if (isdigit(*text))
 					{
 						str.push_back(*text);
 					}
@@ -339,6 +339,32 @@ void NumSpinEdit::initLayout()
 
 LRESULT CALLBACK readOnlyEditSubclassProc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
+	switch (msg)
+	{
+	case WM_CONTEXTMENU:
+		{
+			SetFocus(hEdit);
+			RECT rect;
+			GetWindowRect(hEdit, &rect);
+			POINT pos = { lParam == -1 ? (rect.left + rect.right) / 2 : GET_X_LPARAM(lParam),lParam == -1 ? (rect.top + rect.bottom) / 2 : GET_Y_LPARAM(lParam) };
+			HMENU hMenu = CreatePopupMenu();
+			DWORD sel = Edit_GetSel(hEdit);
+			AppendMenu(hMenu, HIWORD(sel) == LOWORD(sel) ? MF_GRAYED : MF_ENABLED, 1, _T("¸´ÖÆ(&C)"));
+			AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
+			AppendMenu(hMenu, LOWORD(sel) == 0 && HIWORD(sel) == GetWindowTextLength(hEdit) ? MF_GRAYED : MF_ENABLED, 2, _T("È«Ñ¡(&A)"));
+			switch (TrackPopupMenu(hMenu, TPM_NONOTIFY | TPM_RETURNCMD, pos.x, pos.y, 0, hEdit, nullptr))
+			{
+			case 1:
+				SendMessage(hEdit, WM_COPY, 0, 0);
+				break;
+			case 2:
+				Edit_SetSel(hEdit, 0, INT_MAX);
+				break;
+			}
+			DestroyMenu(hMenu);
+			return 0;
+		}
+	}
 	LRESULT result = DefSubclassProc(hEdit, msg, wParam, lParam);
 	HideCaret(hEdit);
 	return result;
