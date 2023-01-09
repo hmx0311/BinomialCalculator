@@ -28,7 +28,7 @@ class NumSpinEdit
 private:
 	HWND hSpin;
 	HWND hMsgWnd;
-	int curSpinFrame = 0;
+	int showSpinAnimationFrame = 0;
 public:
 	void attach(HWND hEdit, HWND hSpin);
 	virtual LRESULT wndProc(UINT msg, WPARAM wParam, LPARAM lParam);

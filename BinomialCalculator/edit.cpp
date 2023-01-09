@@ -4,11 +4,11 @@
 
 #include <Windowsx.h>
 
+#define IDT_FRAME_TIMER 1
 #define IDC_CLEAR_BUTTON 1000
 
 #define NUM_SHOW_SPIN_FRAMES 11
 #define SHOW_SPIN_FRAME_INTERVAL 17
-#define IDT_FRAME_TIMER 1
 
 using namespace std;
 
@@ -284,8 +284,8 @@ int NumSpinEdit::updateNum()
 
 void NumSpinEdit::updateSpin()
 {
-	if (curSpinFrame == 0 && GetWindowTextLength(hEdit) <= MAX_SPIN_LEN ||
-		curSpinFrame == NUM_SHOW_SPIN_FRAMES && GetWindowTextLength(hEdit) > MAX_SPIN_LEN)
+	if (showSpinAnimationFrame == 0 && GetWindowTextLength(hEdit) <= MAX_SPIN_LEN ||
+		showSpinAnimationFrame == NUM_SHOW_SPIN_FRAMES && GetWindowTextLength(hEdit) > MAX_SPIN_LEN)
 	{
 		return;
 	}
@@ -306,22 +306,22 @@ void NumSpinEdit::drawSpinFrame()
 {
 	if (GetWindowTextLength(hEdit) > MAX_SPIN_LEN)
 	{
-		curSpinFrame++;
+		showSpinAnimationFrame++;
 	}
 	else
 	{
-		curSpinFrame--;
+		showSpinAnimationFrame--;
 	}
 	RECT rcSpin;
 	GetWindowRect(hSpin, &rcSpin);
 	SetWindowRgn(hSpin,
 		CreateRectRgn(
-			lroundf((float)curSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left - 2)) + 1,
+			lroundf((float)showSpinAnimationFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left - 2)) + 1,
 			1,
 			rcSpin.right - rcSpin.left - 1,
 			rcSpin.bottom - rcSpin.top - 1),
 		TRUE);
-	if (curSpinFrame == 0 || curSpinFrame == NUM_SHOW_SPIN_FRAMES)
+	if (showSpinAnimationFrame == 0 || showSpinAnimationFrame == NUM_SHOW_SPIN_FRAMES)
 	{
 		KillTimer(hEdit, IDT_FRAME_TIMER);
 	}
