@@ -284,7 +284,8 @@ int NumSpinEdit::updateNum()
 
 void NumSpinEdit::updateSpin()
 {
-	if ((GetWindowTextLength(hEdit) > MAX_SPIN_LEN) == (curSpinFrame == NUM_SHOW_SPIN_FRAMES))
+	if (curSpinFrame == 0 && GetWindowTextLength(hEdit) <= MAX_SPIN_LEN ||
+		curSpinFrame == NUM_SHOW_SPIN_FRAMES && GetWindowTextLength(hEdit) > MAX_SPIN_LEN)
 	{
 		return;
 	}
@@ -313,11 +314,12 @@ void NumSpinEdit::drawSpinFrame()
 	}
 	RECT rcSpin;
 	GetWindowRect(hSpin, &rcSpin);
-	SetWindowRgn(hSpin, CreateRectRgn(
-		lroundf((float)curSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left - 2) + 1),
-		1,
-		rcSpin.right - rcSpin.left - 1,
-		rcSpin.bottom - rcSpin.top - 1),
+	SetWindowRgn(hSpin,
+		CreateRectRgn(
+			lroundf((float)curSpinFrame / NUM_SHOW_SPIN_FRAMES * (rcSpin.right - rcSpin.left - 2)) + 1,
+			1,
+			rcSpin.right - rcSpin.left - 1,
+			rcSpin.bottom - rcSpin.top - 1),
 		TRUE);
 	if (curSpinFrame == 0 || curSpinFrame == NUM_SHOW_SPIN_FRAMES)
 	{
