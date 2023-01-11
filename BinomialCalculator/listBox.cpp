@@ -6,27 +6,47 @@
 #include <uxtheme.h>
 #include <windowsx.h>
 
-static LRESULT listBoxSubclassProc(HWND hListBox, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+static LRESULT listBoxSubclassProc(HWND hLB, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	return ((ResultList*)GetWindowLongPtr(hListBox, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
+	return ((ResultList*)GetWindowLongPtr(hLB, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
 }
 
-void ResultList::attach(HWND hListBox)
+void ResultList::attach(HWND hLB)
 {
-	this->hListBox = hListBox;
-	SetWindowLongPtr(hListBox, GWLP_USERDATA, (LONG_PTR)this);
-	SetWindowSubclass(hListBox, listBoxSubclassProc, 0, 0);
+	this->hLB = hLB;
+	SetWindowLongPtr(hLB, GWLP_USERDATA, (LONG_PTR)this);
+	SetWindowSubclass(hLB, listBoxSubclassProc, 0, 0);
 }
 
 LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
+	case WM_CONTEXTMENU:
+		{
+			POINT pos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			MapWindowPoints(HWND_DESKTOP, hLB, &pos, 1);
+			int index = SendMessage(hLB, LB_ITEMFROMPOINT, 0, POINTTOPOINTS(pos));
+			if (HIWORD(index) == 0)
+			{
+				isPopingMenu = true;
+				HMENU menu = CreatePopupMenu();
+				AppendMenu(menu, 0, 1, _T("É¾³ý(&D)"));
+				if (TrackPopupMenu(menu, TPM_NONOTIFY | TPM_RETURNCMD, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, hLB, nullptr) != 0)
+				{
+					ListBox_DeleteString(hLB, index);
+				}
+				DestroyMenu(menu);
+				isPopingMenu = false;
+				SendMessage(hLB, WM_MOUSELEAVE, 0, 0);
+			}
+			return 0;
+		}
 	case WM_ERASEBKGND:
 		{
 			RECT rect;
-			GetClientRect(hListBox, &rect);
-			rect.top += (ListBox_GetCount(hListBox) - GetScrollPos(hListBox, SB_VERT)) * ListBox_GetItemHeight(hListBox, 0);
+			GetClientRect(hLB, &rect);
+			rect.top += (ListBox_GetCount(hLB) - GetScrollPos(hLB, SB_VERT)) * ListBox_GetItemHeight(hLB, 0);
 			if (rect.top < rect.bottom)
 			{
 				FillRect((HDC)wParam, &rect, GetSysColorBrush(COLOR_WINDOW));
@@ -40,15 +60,12 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		msg = WM_LBUTTONDOWN;
 		break;
 	case WM_MOUSEMOVE:
+		if (ListBox_GetCount(hLB) > 0)
 		{
-			if (isEmpty)
-			{
-				return 0;
-			}
 			if (!isTracking)
 			{
 				isTracking = true;
-				TRACKMOUSEEVENT eventTrack = { sizeof(TRACKMOUSEEVENT),TME_LEAVE,hListBox ,0 };
+				TRACKMOUSEEVENT eventTrack = { sizeof(TRACKMOUSEEVENT),TME_LEAVE,hLB ,0 };
 				TrackMouseEvent(&eventTrack);
 			}
 			POINT pos = { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
@@ -59,15 +76,15 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					return 0;
 				}
 				RECT rcItem;
-				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcItem);
+				ListBox_GetItemRect(hLB, lastTrackItemID, &rcItem);
 				if (PtInRect(&rcItem, pos))
 				{
 					if (!isInClkRect)
 					{
 						isInClkRect = true;
-						HDC hDC = GetDC(hListBox);
+						HDC hDC = GetDC(hLB);
 						drawItem(hDC, lastTrackItemID, ODS_SELECTED, rcItem);
-						ReleaseDC(hListBox, hDC);
+						ReleaseDC(hLB, hDC);
 					}
 				}
 				else
@@ -75,17 +92,17 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					if (isInClkRect)
 					{
 						isInClkRect = false;
-						HDC hDC = GetDC(hListBox);
+						HDC hDC = GetDC(hLB);
 						drawItem(hDC, lastTrackItemID, ODS_HOTLIGHT, rcItem);
-						ReleaseDC(hListBox, hDC);
+						ReleaseDC(hLB, hDC);
 					}
 				}
 			}
 			else
 			{
-				int itemID = (short)LOWORD(SendMessage(hListBox, LB_ITEMFROMPOINT, 0, lParam));
+				int itemID = (short)LOWORD(SendMessage(hLB, LB_ITEMFROMPOINT, 0, lParam));
 				RECT rcItem;
-				ListBox_GetItemRect(hListBox, itemID, &rcItem);
+				ListBox_GetItemRect(hLB, itemID, &rcItem);
 				if (!PtInRect(&rcItem, pos))
 				{
 					itemID = -1;
@@ -94,36 +111,36 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				{
 					return 0;
 				}
-				HDC hDC = GetDC(hListBox);
+				HDC hDC = GetDC(hLB);
 				if (lastTrackItemID != -1)
 				{
 					RECT rcLast;
-					ListBox_GetItemRect(hListBox, lastTrackItemID, &rcLast);
+					ListBox_GetItemRect(hLB, lastTrackItemID, &rcLast);
 					drawItem(hDC, lastTrackItemID, 0, rcLast);
 				}
 				if (itemID != -1)
 				{
 					drawItem(hDC, itemID, ODS_HOTLIGHT, rcItem);
 				}
-				ReleaseDC(hListBox, hDC);
+				ReleaseDC(hLB, hDC);
 				lastTrackItemID = itemID;
 			}
-			return 0;
 		}
+		return 0;
 	case WM_LBUTTONUP:
-		if (!isEmpty)
+		if (ListBox_GetCount(hLB) > 0)
 		{
-			ListBox_SetCurSel(hListBox, -1);
+			ListBox_SetCurSel(hLB, -1);
 			if (isInClkRect && lastTrackItemID != -1)
 			{
 				RECT rcItem;
-				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcItem);
+				ListBox_GetItemRect(hLB, lastTrackItemID, &rcItem);
 				TCHAR str[41];
-				ListBox_GetText(hListBox, lastTrackItemID, str);
-				SendMessage(GetParent(hListBox), WM_COMMAND, ID_RETRIEVE_RESULT, (LPARAM)str);
-				HDC hDC = GetDC(hListBox);
+				ListBox_GetText(hLB, lastTrackItemID, str);
+				SendMessage(GetParent(hLB), WM_COMMAND, ID_RETRIEVE_RESULT, (LPARAM)str);
+				HDC hDC = GetDC(hLB);
 				drawItem(hDC, lastTrackItemID, ODS_HOTLIGHT, rcItem);
-				ReleaseDC(hListBox, hDC);
+				ReleaseDC(hLB, hDC);
 			}
 			isInClkRect = true;
 		}
@@ -131,31 +148,31 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSELEAVE:
 		{
 			isTracking = false;
-			if (lastTrackItemID != -1)
+			if (!isPopingMenu && lastTrackItemID != -1)
 			{
 				RECT rcLast;
-				ListBox_GetItemRect(hListBox, lastTrackItemID, &rcLast);
-				HDC hDC = GetDC(hListBox);
+				ListBox_GetItemRect(hLB, lastTrackItemID, &rcLast);
+				HDC hDC = GetDC(hLB);
 				drawItem(hDC, lastTrackItemID, 0, rcLast);
-				ReleaseDC(hListBox, hDC);
+				ReleaseDC(hLB, hDC);
+				lastTrackItemID = -1;
 			}
-			ListBox_SetCurSel(hListBox, -1);
-			lastTrackItemID = -1;
+			ListBox_SetCurSel(hLB, -1);
 			isInClkRect = true;
 			break;
 		}
 	case WM_MOUSEWHEEL:
-		ListBox_SetCurSel(hListBox, -1);
+		ListBox_SetCurSel(hLB, -1);
 		lastTrackItemID = -1;
 		isInClkRect = true;
 		break;
 	}
-	return DefSubclassProc(hListBox, msg, wParam, lParam);
+	return DefSubclassProc(hLB, msg, wParam, lParam);
 }
 
 void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 {
-	if (itemID == -1)
+	if (itemID == -1 || isPopingMenu)
 	{
 		return;
 	}
@@ -178,7 +195,7 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 
 	SetBkMode(hDCMem, TRANSPARENT);
 	TCHAR sText[41];
-	ListBox_GetText(hListBox, itemID, sText);
+	ListBox_GetText(hLB, itemID, sText);
 	SetTextColor(hDCMem, GetSysColor(COLOR_WINDOWTEXT));
 	DrawText(hDCMem, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 	EndBufferedPaint(hPaintBuffer, TRUE);
@@ -186,29 +203,27 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 
 HWND ResultList::getHwnd()
 {
-	return hListBox;
+	return hLB;
 }
 
 void ResultList::addResult(PCTSTR str)
 {
-	int i = ListBox_FindString(hListBox, -1, str);
+	int i = ListBox_FindString(hLB, -1, str);
 	if (i == 0)
 	{
 		return;
 	}
 	if (i > 0)
 	{
-		ListBox_DeleteString(hListBox, i);
+		ListBox_DeleteString(hLB, i);
 	}
-	ListBox_InsertString(hListBox, 0, str);
-	ListBox_SetTopIndex(hListBox, 0);
+	ListBox_InsertString(hLB, 0, str);
+	ListBox_SetTopIndex(hLB, 0);
 	lastTrackItemID = -1;
 	isInClkRect = true;
-	isEmpty = false;
 }
 
 void ResultList::reset()
 {
-	ListBox_ResetContent(hListBox);
-	isEmpty = true;
+	ListBox_ResetContent(hLB);
 }
