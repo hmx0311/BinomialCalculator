@@ -176,28 +176,29 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	{
 		return;
 	}
-	HDC hDCMem;
-	HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hDCMem);
-	SelectObject(hDCMem, hNormalFont);
+	HDC hMemDC;
+	HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hMemDC);
+	HFONT hOldFont=SelectFont(hMemDC, hNormalFont);
 
 	if (itemState & ODS_HOTLIGHT || !isInClkRect)
 	{
-		FillRect(hDCMem, &rcItem, GetStockBrush(LTGRAY_BRUSH));
+		FillRect(hMemDC, &rcItem, GetStockBrush(LTGRAY_BRUSH));
 	}
 	else if (itemState & ODS_SELECTED)
 	{
-		FillRect(hDCMem, &rcItem, GetStockBrush(GRAY_BRUSH));
+		FillRect(hMemDC, &rcItem, GetStockBrush(GRAY_BRUSH));
 	}
 	else
 	{
-		FillRect(hDCMem, &rcItem, GetSysColorBrush(COLOR_WINDOW));
+		FillRect(hMemDC, &rcItem, GetSysColorBrush(COLOR_WINDOW));
 	}
 
-	SetBkMode(hDCMem, TRANSPARENT);
+	SetBkMode(hMemDC, TRANSPARENT);
 	TCHAR sText[41];
 	ListBox_GetText(hLB, itemID, sText);
-	SetTextColor(hDCMem, GetSysColor(COLOR_WINDOWTEXT));
-	DrawText(hDCMem, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	SetTextColor(hMemDC, GetSysColor(COLOR_WINDOWTEXT));
+	DrawText(hMemDC, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	SelectFont(hMemDC, hOldFont);
 	EndBufferedPaint(hPaintBuffer, TRUE);
 }
 

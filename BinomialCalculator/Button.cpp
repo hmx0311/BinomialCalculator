@@ -127,11 +127,11 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 		padding = BUTTON_MARGIN_RATIO * min(rcContent.right - rcContent.left, rcContent.bottom - rcContent.top);
 		if (state == PBS_HOT || state == PBS_PRESSED)
 		{
-			HGDIOBJ oldBrush = SelectObject(hDC, GetStockObject(LTGRAY_BRUSH));
-			HGDIOBJ oldPen = SelectObject(hDC, GetStockObject(NULL_PEN));
+			HBRUSH oldBrush = SelectBrush(hDC, GetStockObject(LTGRAY_BRUSH));
+			HPEN oldPen = SelectPen(hDC, GetStockObject(NULL_PEN));
 			RoundRect(hDC, rcContent.left, rcContent.top, rcContent.right + 1, rcContent.bottom + 1, 2 * padding, 2 * padding);
-			SelectObject(hDC, oldBrush);
-			SelectObject(hDC, oldPen);
+			SelectBrush(hDC, oldBrush);
+			SelectPen(hDC, oldPen);
 		}
 	}
 	else
@@ -165,29 +165,31 @@ void Button::drawButton(HDC hDC, PUSHBUTTONSTATES state, RECT& rcItem)
 	HICON hIcon = (HICON)SendMessage(hButton, BM_GETIMAGE, IMAGE_ICON, 0);
 	if (hIcon != nullptr)
 	{
-		HDC hDCImage = CreateCompatibleDC(hDC);
+		HDC hImageDC = CreateCompatibleDC(hDC);
 		int xSqueeze = 0, ySqueeze = 0;
 		if (state == PBS_PRESSED && (hButtonTheme != nullptr || GetWindowStyle(hButton) & BS_FLAT))
 		{
 			xSqueeze = PRESSED_SQUEEZE * iconWidth + 1;
 			ySqueeze = PRESSED_SQUEEZE * iconHeight + 1;
 		}
-		HBITMAP hBmBuffer = CreateCompatibleBitmap(hDC, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze);
-		SelectObject(hDCImage, hBmBuffer);
-		SetStretchBltMode(hDCImage, HALFTONE);
-		StretchBlt(hDCImage, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze,
+		HBITMAP hBufferBm = CreateCompatibleBitmap(hDC, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze);
+		HBITMAP hOldBm = SelectBitmap(hImageDC, hBufferBm);
+		SetStretchBltMode(hImageDC, HALFTONE);
+		StretchBlt(hImageDC, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze,
 			hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top, SRCCOPY);
-		DrawIconEx(hDCImage, xSqueeze, ySqueeze, hIcon, 0, 0, 0, nullptr, DI_NORMAL);
+		DrawIconEx(hImageDC, xSqueeze, ySqueeze, hIcon, 0, 0, 0, nullptr, DI_NORMAL);
 		SetStretchBltMode(hDC, HALFTONE);
 		StretchBlt(hDC, rcContent.left, rcContent.top, rcContent.right - rcContent.left, rcContent.bottom - rcContent.top,
-			hDCImage, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze, SRCCOPY);
-		DeleteObject(hBmBuffer);
-		DeleteObject(hDCImage);
+			hImageDC, 0, 0, iconWidth + 2 * xSqueeze, iconHeight + 2 * ySqueeze, SRCCOPY);
+		SelectBitmap(hImageDC, hOldBm);
+		DeleteObject(hBufferBm);
+		DeleteObject(hImageDC);
 	}
-	SelectObject(hDC, GetWindowFont(hButton));
+	HFONT hOldFont = SelectFont(hDC, GetWindowFont(hButton));
 	SetBkMode(hDC, TRANSPARENT);
 	SetTextColor(hDC, GetSysColor(COLOR_BTNTEXT));
 	TCHAR str[10];
 	GetWindowText(hButton, str, 10);
 	DrawText(hDC, str, lstrlen(str), &rcContent, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+	SelectFont(hDC, hOldFont);
 }
