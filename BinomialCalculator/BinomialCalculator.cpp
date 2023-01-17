@@ -25,7 +25,6 @@ HINSTANCE hInst;                                // 当前实例
 HFONT hNormalFont;
 HFONT hLargeFont;
 
-HWND hMainDlg;
 NumericEdit successProbabilityEdit;
 NumSpinEdit numTrialsEdit;
 NumSpinEdit numSuccessEdit;
@@ -33,6 +32,8 @@ HWND hResultText[2];
 HWND hErrorText;
 Button clearHistoryResultButton;
 ResultList historyResultListBox;
+
+HWND hLastFocus = nullptr;
 
 double successProbability = 0;
 int numTrials = 0;
@@ -47,7 +48,6 @@ UINT BPC_PROBABILITY;
 BOOL                initDlg(HWND);
 INT_PTR CALLBACK    dlgProc(HWND, UINT, WPARAM, LPARAM);
 void updateSuccessProbability();
-void calcProbability();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -55,17 +55,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ int       nCmdShow)
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
-	UNREFERENCED_PARAMETER(lpCmdLine);
 
 
 	// 执行应用程序初始化:
-	SetProcessDPIAware();
 	BufferedPaintInit();
 	ImmDisableIME(GetCurrentThreadId());
 
 	hInst = hInstance; // 将实例句柄存储在全局变量中
-	CreateDialog(hInst, MAKEINTRESOURCE(IDD_BINOMIALCALCULATOR_DIALOG), NULL, dlgProc);
-	if (!hMainDlg)
+	HWND hDlg = CreateDialog(hInst, MAKEINTRESOURCE(IDD_BINOMIALCALCULATOR_DIALOG), NULL, dlgProc);
+	if (!hDlg)
 	{
 		return FALSE;
 	}
@@ -80,8 +78,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		&BPC_DISCONNECT,
 		&BPC_PROBABILITY) == 4)
 	{
-		PostMessage(hBet, BPC_CONNECTED, (WPARAM)hMainDlg, 0);
-		SetWindowText(hMainDlg, _T("bet - 二项分布计算器"));
+		PostMessage(hBet, BPC_CONNECTED, (WPARAM)hDlg, 0);
+		SetWindowText(hDlg, _T("bet - 二项分布计算器"));
 	}
 	else
 	{
@@ -93,7 +91,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 主消息循环:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
-		if (!IsDialogMessage(hMainDlg, &msg))
+		if (!IsDialogMessage(hDlg, &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -107,7 +105,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 BOOL initDlg(HWND hDlg)
 {
-	hMainDlg = hDlg;
 	HICON hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_BINOMIALCALCULATOR));
 	SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 	SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
@@ -127,10 +124,35 @@ BOOL initDlg(HWND hDlg)
 	hResultText[1] = GetDlgItem(hDlg, IDC_R_RESULT_TEXT);
 	SetWindowSubclass(hResultText[1], readOnlyEditSubclassProc, 0, 0);
 	SetWindowFont(hResultText[1], hLargeFont, FALSE);
-	hErrorText= GetDlgItem(hDlg, IDC_ERROR_TEXT);
+	hErrorText = GetDlgItem(hDlg, IDC_ERROR_TEXT);
 	HWND hCalculateButton = GetDlgItem(hDlg, IDC_CALCULATE_BUTTON);
 	SendMessage(hCalculateButton, WM_UPDATEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS), 0);
-	SetWindowSubclass(hCalculateButton, buttonSubclassProc, 0, 0);
+	SetWindowSubclass(hCalculateButton, [](HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)->LRESULT
+		{
+			switch (msg)
+			{
+			case WM_GETDLGCODE:
+				return 0;
+			case WM_UPDATEUISTATE:
+				wParam &= ~MAKELONG(0, UISF_HIDEFOCUS);
+				break;
+			case BM_SETSTYLE:
+				return 0;
+			case WM_SETFOCUS:
+				if (!GetKeyState(VK_RETURN))
+				{
+					SetFocus((HWND)wParam);
+				}
+				else
+				{
+					hLastFocus = (HWND)wParam;
+				}
+				break;
+			case WM_KILLFOCUS:
+				return 0;
+			}
+			return DefSubclassProc(hButton, msg, wParam, lParam);
+		}, 0, 0);
 	clearHistoryResultButton.attach(GetDlgItem(hDlg, IDC_CLEAR_HISTORY_RESULT_BUTTON));
 	historyResultListBox.attach(GetDlgItem(hDlg, IDC_HISTORY_RESULT_LISTBOX));
 
@@ -254,7 +276,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
 				if (hBet != nullptr)
 				{
-					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hMainDlg, *(LPARAM*)(&cumulativeProbability));
+					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hDlg, *(LPARAM*)(&cumulativeProbability));
 				}
 				TCHAR str[PROB_LEN + 3];
 				_stprintf(str, _T("%." STR(PROB_LEN) "f"), cumulativeProbability);
@@ -301,8 +323,60 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case IDC_CALCULATE_BUTTON:
-			calcProbability();
-			return (INT_PTR)TRUE;
+			{
+				if (successProbability == 0)
+				{
+					SetWindowText(hErrorText, _T("成功概率不能为0"));
+					ShowWindow(hErrorText, SW_SHOW);
+					SetFocus(successProbabilityEdit.getHwnd());
+					Edit_SetSel(successProbabilityEdit.getHwnd(), 0, INT_MAX);
+					return (INT_PTR)TRUE;
+				}
+				if (numTrials == 0)
+				{
+					SetWindowText(hErrorText, _T("试验次数不能为0"));
+					ShowWindow(hErrorText, SW_SHOW);
+					SetFocus(numTrialsEdit.getHwnd());
+					Edit_SetSel(numTrialsEdit.getHwnd(), 0, INT_MAX);
+					return (INT_PTR)TRUE;
+				}
+				if (numSuccess == 0)
+				{
+					SetWindowText(hErrorText, _T("成功次数不能为0"));
+					ShowWindow(hErrorText, SW_SHOW);
+					SetFocus(numSuccessEdit.getHwnd());
+					Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
+					return (INT_PTR)TRUE;
+				}
+				if (numSuccess > numTrials)
+				{
+					SetWindowText(hErrorText, _T("成功次数不能大于试验次数"));
+					ShowWindow(hErrorText, SW_SHOW);
+					SetFocus(numSuccessEdit.getHwnd());
+					Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
+					return (INT_PTR)TRUE;
+				}
+				double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
+				if (hBet != nullptr)
+				{
+					PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hDlg, *(LPARAM*)(&cumulativeProbability));
+				}
+				TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
+				_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
+					successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
+				historyResultListBox.addResult(str);
+				str[2 * (PROB_LEN + 2) + 2 * NUM_LEN + 4] = '\0';
+				ShowWindow(hResultText[0], SW_SHOW);
+				SetWindowText(hResultText[0], str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
+				ShowWindow(hResultText[1], SW_SHOW);
+				SetWindowText(hResultText[1], str + (2 * (PROB_LEN + 2) + 2 * NUM_LEN + 6));
+				if (hLastFocus != nullptr)
+				{
+					SetFocus(hLastFocus);
+					hLastFocus = nullptr;
+				}
+				return (INT_PTR)TRUE;
+			}
 		case IDC_CLEAR_HISTORY_RESULT_BUTTON:
 			historyResultListBox.reset();
 			return (INT_PTR)TRUE;
@@ -360,7 +434,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		if (hBet != nullptr)
 		{
-			PostMessage(hBet, BPC_DISCONNECT, (WPARAM)hMainDlg, 0);
+			PostMessage(hBet, BPC_DISCONNECT, (WPARAM)hDlg, 0);
 		}
 		CloseThemeData(hButtonTheme);
 		PostQuitMessage(0);
@@ -380,54 +454,3 @@ void updateSuccessProbability()
 		successProbability = (successProbability + c) * 0.1;
 	}
 }
-
-void calcProbability()
-{
-	if (successProbability == 0)
-	{
-		SetWindowText(hErrorText, _T("成功概率不能为0"));
-		ShowWindow(hErrorText, SW_SHOW);
-		SetFocus(successProbabilityEdit.getHwnd());
-		Edit_SetSel(successProbabilityEdit.getHwnd(), 0, INT_MAX);
-		return;
-	}
-	if (numTrials == 0)
-	{
-		SetWindowText(hErrorText, _T("试验次数不能为0"));
-		ShowWindow(hErrorText, SW_SHOW);
-		SetFocus(numTrialsEdit.getHwnd());
-		Edit_SetSel(numTrialsEdit.getHwnd(), 0, INT_MAX);
-		return;
-	}
-	if (numSuccess == 0)
-	{
-		SetWindowText(hErrorText, _T("成功次数不能为0"));
-		ShowWindow(hErrorText, SW_SHOW);
-		SetFocus(numSuccessEdit.getHwnd());
-		Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
-		return;
-	}
-	if (numSuccess > numTrials)
-	{
-		SetWindowText(hErrorText, _T("成功次数不能大于试验次数"));
-		ShowWindow(hErrorText, SW_SHOW);
-		SetFocus(numSuccessEdit.getHwnd());
-		Edit_SetSel(numSuccessEdit.getHwnd(), 0, INT_MAX);
-		return;
-	}
-	double cumulativeProbability = binomialCumulativeProbability(successProbability, numTrials, numSuccess);
-	if (hBet != nullptr)
-	{
-		PostMessage(hBet, BPC_PROBABILITY, (WPARAM)hMainDlg, *(LPARAM*)(&cumulativeProbability));
-	}
-	TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
-	_stprintf(str, _T("%." STR(PROB_LEN) "f %" STR(NUM_LEN) "d %" STR(NUM_LEN) "d  %." STR(PROB_LEN) "f  %." STR(PROB_LEN) "f"),
-		successProbability, numTrials, numSuccess, cumulativeProbability, 1 - cumulativeProbability);
-	historyResultListBox.addResult(str);
-	str[2*(PROB_LEN + 2) + 2 * NUM_LEN + 4]='\0';
-	ShowWindow(hResultText[0], SW_SHOW);
-	SetWindowText(hResultText[0], str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
-	ShowWindow(hResultText[1], SW_SHOW);
-	SetWindowText(hResultText[1], str + (2*(PROB_LEN + 2) + 2 * NUM_LEN + 6));
-}
-

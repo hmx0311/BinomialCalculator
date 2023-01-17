@@ -53,9 +53,6 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			return (LRESULT)TRUE;
 		}
-	case WM_CHAR:
-	case WM_KEYDOWN:
-		return 0;
 	case WM_LBUTTONDBLCLK:
 		msg = WM_LBUTTONDOWN;
 		break;
@@ -165,6 +162,9 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		ListBox_SetCurSel(hLB, -1);
 		lastTrackItemID = -1;
 		isInClkRect = true;
+		break;
+	case WM_SETFOCUS:
+		SetFocus((HWND)wParam);
 		break;
 	}
 	return DefSubclassProc(hLB, msg, wParam, lParam);

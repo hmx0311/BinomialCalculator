@@ -11,18 +11,9 @@
 
 HTHEME hButtonTheme;
 
-LRESULT CALLBACK buttonSubclassProc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+static LRESULT CALLBACK buttonSubclassProc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	Button* button = (Button*)GetWindowLongPtr(hButton, GWLP_USERDATA);
-	if (button != nullptr)
-	{
-		return button->wndProc(msg, wParam, lParam);
-	}
-	if (msg == WM_UPDATEUISTATE)
-	{
-		wParam &= ~MAKELONG(0, UISF_HIDEFOCUS | UISF_ACTIVE);
-	}
-	return DefSubclassProc(hButton, msg, wParam, lParam);
+	return ((Button*)GetWindowLongPtr(hButton, GWLP_USERDATA))->wndProc(msg, wParam, lParam);
 }
 
 void Button::attach(HWND hButton)
