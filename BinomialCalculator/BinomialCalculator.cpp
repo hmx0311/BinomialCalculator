@@ -16,8 +16,8 @@
 #pragma comment(lib,"imm32.lib")
 
 #define DISPLAYED_ITEM_COUNT 5
-#define LIST_ITEM_HEIGHT (1.36f * abs(logFont.lfHeight))
-#define LARGE_FONT_HEIGHT (-1.42f * abs(logFont.lfHeight))
+#define LIST_ITEM_HEIGHT int(1.36f * abs(logFont.lfHeight))
+#define LARGE_FONT_HEIGHT int(-1.42f * abs(logFont.lfHeight))
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
@@ -32,8 +32,6 @@ HWND hResultText[2];
 HWND hErrorText;
 Button clearHistoryResultButton;
 ResultList historyResultListBox;
-
-HWND hLastFocus = nullptr;
 
 double successProbability = 0;
 int numTrials = 0;
@@ -139,13 +137,10 @@ BOOL initDlg(HWND hDlg)
 			case BM_SETSTYLE:
 				return 0;
 			case WM_SETFOCUS:
-				if (!GetKeyState(VK_RETURN))
+				SetFocus((HWND)wParam);
+				if (GetKeyState(VK_RETURN))
 				{
-					SetFocus((HWND)wParam);
-				}
-				else
-				{
-					hLastFocus = (HWND)wParam;
+					SendMessage(GetParent(hButton), WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(hButton), BN_CLICKED), 0);
 				}
 				break;
 			case WM_KILLFOCUS:
@@ -263,7 +258,7 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_RETRIEVE_RESULT:
 			{
 				TCHAR successProbabilityStr[PROB_LEN + 1], numTrialsStr[NUM_LEN + 1], numSuccessStr[NUM_LEN + 1];
-				if (_stscanf((LPTSTR)lParam, _T("0.%" STR(PROB_LEN) "s %" STR(NUM_LEN) "s %" STR(NUM_LEN) "s"), successProbabilityStr, numTrialsStr, numSuccessStr) != 3)
+				if (_stscanf((PTSTR)lParam, _T("0.%" STR(PROB_LEN) "s %" STR(NUM_LEN) "s %" STR(NUM_LEN) "s"), successProbabilityStr, numTrialsStr, numSuccessStr) != 3)
 				{
 					return (INT_PTR)TRUE;
 				}
@@ -370,11 +365,6 @@ INT_PTR CALLBACK dlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				SetWindowText(hResultText[0], str + (PROB_LEN + 2 + 2 * NUM_LEN + 4));
 				ShowWindow(hResultText[1], SW_SHOW);
 				SetWindowText(hResultText[1], str + (2 * (PROB_LEN + 2) + 2 * NUM_LEN + 6));
-				if (hLastFocus != nullptr)
-				{
-					SetFocus(hLastFocus);
-					hLastFocus = nullptr;
-				}
 				return (INT_PTR)TRUE;
 			}
 		case IDC_CLEAR_HISTORY_RESULT_BUTTON:

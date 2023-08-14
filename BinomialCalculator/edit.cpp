@@ -172,6 +172,9 @@ LRESULT NumericEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			Edit_ReplaceSel(hEdit, str.c_str());
 			return 0;
 		}
+	case WM_PAINT:
+		InvalidateRect(clearButton.getHwnd(), nullptr, FALSE);
+		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
@@ -254,6 +257,9 @@ LRESULT NumSpinEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			return 0;
 		}
 		break;
+	case WM_KILLFOCUS:
+		SendMessage(hMsgWnd, WM_KEYUP, VK_UP, MAKELONG(1, KF_UP | KF_REPEAT | KF_EXTENDED));
+		break;
 	case WM_MOUSEWHEEL:
 		SendMessage(hMsgWnd, msg, wParam, lParam);
 		break;
@@ -266,9 +272,6 @@ LRESULT NumSpinEdit::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessage(hMsgWnd, msg, wParam, lParam);
 			break;
 		}
-		break;
-	case WM_KILLFOCUS:
-		SendMessage(hMsgWnd, WM_KEYUP, VK_UP, MAKELONG(1, KF_UP | KF_REPEAT | KF_EXTENDED));
 		break;
 	}
 	return NumericEdit::wndProc(msg, wParam, lParam);

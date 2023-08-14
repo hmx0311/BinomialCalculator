@@ -23,25 +23,21 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 	switch (msg)
 	{
 	case WM_CONTEXTMENU:
+		if (lastTrackItemID >= 0 && isInClkRect)
 		{
-			POINT pos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-			MapWindowPoints(HWND_DESKTOP, hLB, &pos, 1);
-			int index = SendMessage(hLB, LB_ITEMFROMPOINT, 0, POINTTOPOINTS(pos));
-			if (HIWORD(index) == 0)
+			isPopingMenu = true;
+			ListBox_SetCurSel(hLB, -1);
+			HMENU menu = CreatePopupMenu();
+			AppendMenu(menu, 0, 1, _T("É¾³ý(&D)"));
+			if (TrackPopupMenu(menu, TPM_NONOTIFY | TPM_RETURNCMD, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, hLB, nullptr) != 0)
 			{
-				isPopingMenu = true;
-				HMENU menu = CreatePopupMenu();
-				AppendMenu(menu, 0, 1, _T("É¾³ý(&D)"));
-				if (TrackPopupMenu(menu, TPM_NONOTIFY | TPM_RETURNCMD, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, hLB, nullptr) != 0)
-				{
-					ListBox_DeleteString(hLB, index);
-				}
-				DestroyMenu(menu);
-				isPopingMenu = false;
-				SendMessage(hLB, WM_MOUSELEAVE, 0, 0);
+				ListBox_DeleteString(hLB, lastTrackItemID);
 			}
-			return 0;
+			DestroyMenu(menu);
+			isPopingMenu = false;
+			SendMessage(hLB, WM_MOUSELEAVE, 0, 0);
 		}
+		return 0;
 	case WM_ERASEBKGND:
 		{
 			RECT rect;
@@ -130,11 +126,11 @@ LRESULT ResultList::wndProc(UINT msg, WPARAM wParam, LPARAM lParam)
 			ListBox_SetCurSel(hLB, -1);
 			if (isInClkRect && lastTrackItemID != -1)
 			{
-				RECT rcItem;
-				ListBox_GetItemRect(hLB, lastTrackItemID, &rcItem);
-				TCHAR str[41];
+				TCHAR str[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 				ListBox_GetText(hLB, lastTrackItemID, str);
 				SendMessage(GetParent(hLB), WM_COMMAND, ID_RETRIEVE_RESULT, (LPARAM)str);
+				RECT rcItem;
+				ListBox_GetItemRect(hLB, lastTrackItemID, &rcItem);
 				HDC hDC = GetDC(hLB);
 				drawItem(hDC, lastTrackItemID, ODS_HOTLIGHT, rcItem);
 				ReleaseDC(hLB, hDC);
@@ -178,7 +174,7 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	}
 	HDC hMemDC;
 	HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hDC, &rcItem, BPBF_COMPATIBLEBITMAP, nullptr, &hMemDC);
-	HFONT hOldFont=SelectFont(hMemDC, hNormalFont);
+	HFONT hOldFont = SelectFont(hMemDC, hNormalFont);
 
 	if (itemState & ODS_HOTLIGHT || !isInClkRect)
 	{
@@ -194,7 +190,7 @@ void ResultList::drawItem(HDC hDC, int itemID, UINT itemState, RECT& rcItem)
 	}
 
 	SetBkMode(hMemDC, TRANSPARENT);
-	TCHAR sText[41];
+	TCHAR sText[3 * (PROB_LEN + 2) + 2 * NUM_LEN + 7];
 	ListBox_GetText(hLB, itemID, sText);
 	SetTextColor(hMemDC, GetSysColor(COLOR_WINDOWTEXT));
 	DrawText(hMemDC, sText, -1, &rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -218,10 +214,12 @@ void ResultList::addResult(PCTSTR str)
 	{
 		ListBox_DeleteString(hLB, i);
 	}
-	ListBox_InsertString(hLB, 0, str);
-	ListBox_SetTopIndex(hLB, 0);
+
 	lastTrackItemID = -1;
 	isInClkRect = true;
+	ListBox_SetCurSel(hLB, -1);
+	ListBox_InsertString(hLB, 0, str);
+	ListBox_SetTopIndex(hLB, 0);
 }
 
 void ResultList::reset()
